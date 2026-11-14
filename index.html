@@ -1,0 +1,142 @@
+<!doctype html>
+<!-- GH Cadenas — Copyright (c) 2026 Felipe Manrique. Todos los derechos reservados. -->
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f7f8f4" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#14170f" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Cadenas">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>GH Cadenas</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="icons/icon-192.png" sizes="192x192" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png">
+<link rel="apple-touch-icon" sizes="167x167" href="icons/icon-167.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<section class="gh-login" id="login">
+  <div class="gh-login-card">
+    <img class="gh-login-logo" src="logo-gh.png" alt="GH Consultora">
+    <h1>GH Cadenas</h1>
+    <p>Cadenas de custodia digitales. Ingresá con tu cuenta de Google.</p>
+    <div id="gsiButton"></div>
+    <p class="gh-login-msg" id="loginMsg" hidden></p>
+  </div>
+</section>
+
+<div id="app" hidden>
+  <header class="topbar">
+    <button class="icon-btn" id="btnVolver" aria-label="Volver" hidden>
+      <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>
+    </button>
+    <img class="logo" src="logo-gh.png" alt="GH Consultora" width="62" height="30">
+    <h1>Cadenas</h1>
+    <span class="usuario" id="usuario"></span>
+    <button class="icon-btn" id="btnTema" aria-label="Cambiar tema">
+      <svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+    </button>
+  </header>
+  <div class="banner-sesion" id="bannerSesion" hidden><span id="bannerSesionMsg"></span><div id="gsiButton2"></div></div>
+  <div class="banner-demo" id="bannerDemo" hidden>Modo de prueba: los datos quedan solo en este dispositivo y los servicios son de ejemplo.</div>
+
+  <main>
+    <!-- 1 · mediciones -->
+    <div id="vServicios">
+      <section class="card">
+        <h2>Mediciones</h2>
+        <p class="muted">Elegí la medición para completar sus cadenas de custodia. Salen de Seguimiento de Mediciones.</p>
+        <input type="search" id="busca" placeholder="Buscar empresa o presupuesto…" aria-label="Buscar" autocomplete="off">
+        <div id="listaServicios"></div>
+        <label class="check"><input type="checkbox" id="chkTerminados"> <span>Ver también las terminadas</span></label>
+      </section>
+      <section class="card">
+        <h2>Cadena suelta</h2>
+        <p class="muted">Para una medición que todavía no está cargada en Seguimiento. Queda en el teléfono y se puede descargar el PDF.</p>
+        <div class="row"><select id="selSuelta" class="grow" aria-label="Tipo de cadena"><option value="">Elegí la cadena…</option></select>
+          <button class="btn sec" id="btnSuelta" type="button">Empezar</button></div>
+      </section>
+    </div>
+
+    <!-- 2 · una medición -->
+    <div id="vServicio" hidden>
+      <section class="card">
+        <h2 id="servTitulo"></h2>
+        <p class="muted" id="servSub"></p>
+        <div id="servCadenas"></div>
+      </section>
+      <section class="card">
+        <h2>Agregar cadena</h2>
+        <p class="muted">Primero aparecen las que corresponden a esta medición.</p>
+        <div class="tipos-cc" id="servAgregar"></div>
+      </section>
+    </div>
+
+    <!-- 3 · una cadena -->
+    <div id="vCadena" hidden>
+      <section class="card">
+        <h2 id="cadTitulo"></h2>
+        <p class="muted" id="cadEmpresa"></p>
+        <span id="cadFuente"></span>
+        <p class="nota" id="cadNota"></p>
+        <p class="cerrada" id="cadCerrada" hidden>Cadena entregada. Para corregir algo hay que reabrirla.</p>
+        <p class="guardado" id="cadGuardado" role="status"></p>
+      </section>
+      <section class="card">
+        <h2>Rótulo</h2>
+        <div class="grid" id="cadRotulo"></div>
+        <datalist id="dlEquipos"></datalist>
+      </section>
+      <div id="cadTablas"></div>
+      <section class="card" id="secExtras">
+        <h2>Condiciones y datos generales</h2>
+        <div class="grid" id="cadExtras"></div>
+      </section>
+      <section class="card">
+        <h2>Observaciones</h2>
+        <label class="campo ancho"><span class="lbl">Observaciones generales para la operación</span>
+          <textarea id="cadObs" rows="3"></textarea></label>
+      </section>
+      <section class="card">
+        <h2>Firmas</h2>
+        <p class="muted">Pasale el teléfono a quien firma: se dibuja con el dedo.</p>
+        <div class="firmas" id="cadFirmas"></div>
+      </section>
+      <section class="card">
+        <div id="accAbierta">
+          <div class="barra"><button class="btn sec" id="btnPdf" type="button">Ver el PDF</button><span class="grow"></span>
+            <button class="btn grande" id="btnEntregar" type="button">Cerrar y entregar</button></div>
+          <p class="muted">Al entregar, el PDF firmado queda en Seguimiento de Mediciones como cadena completada, y los datos listos para el informe.</p>
+          <button class="mini peligro" id="btnBorrar" type="button">Eliminar esta cadena</button>
+        </div>
+        <div id="accCerrada" hidden>
+          <div class="barra"><button class="btn" id="btnPdf2" type="button">Ver el PDF</button>
+            <button class="btn sec" id="btnDatos" type="button">Descargar los datos</button>
+            <a class="btn sec" id="lnkPdf" target="_blank" rel="noopener" hidden>Abrir en Drive</a><span class="grow"></span>
+            <button class="btn sec" id="btnReabrir" type="button">Reabrir</button></div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+<div class="toast" id="toast" role="status"><span id="toastMsg"></span><button id="toastBtn" hidden></button></div>
+
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="vendor/pdf-lib.min.js"></script>
+<script src="cadenas.js"></script>
+<script src="almacen.js"></script>
+<script src="firma.js"></script>
+<script src="pdf.js"></script>
+<script src="demo.js"></script>
+<script src="app.js"></script>
+<script src="backend.js"></script>
+</body>
+</html>

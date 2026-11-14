@@ -1,0 +1,17 @@
+{
+  "name": "GH Cadenas",
+  "short_name": "Cadenas",
+  "description": "Cadenas de custodia digitales de GH Consultora: se completan desde el celular, con firma, enlazadas a Seguimiento de Mediciones.",
+  "lang": "es-AR",
+  "id": "/gh-cadenas/",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f7f8f4",
+  "theme_color": "#f7f8f4",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
