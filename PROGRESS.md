@@ -1,11 +1,14 @@
 # Progreso
 
-## 14/11/2026 — v1.2.0, probado en local, SIN publicar
-Hecho y probado: 16 cadenas, guardado sin señal, firma con el dedo, PDF, entrega (modo de prueba), backend propio (pruebas con Google simulado),
-apertura sin señal con lo último sincronizado, pase de datos a GH Informes (12 tipos).
+## 14/11/2026 — v1.2.2 PUBLICADA
+- App: https://infoghconsultora-prog.github.io/gh-cadenas/ (repo infoghconsultora-prog/gh-cadenas, GitHub Pages).
+- Backend: Apps Script «GH Cadenas Backend» en info.ghconsultora (scriptId 1ByZDF2k9TDoblFKHdj122C6feSHHWbTlCORpeE2FcaBUpr0jpE1EzVoA),
+  implementación AKfycbwqj4wAPmFieuKLWY3Ac7eN4zZPt5lTuFVpo5rwiQmguK9rMCVpYbn3diSmDW5SAaVfVQ. Cambios: `./desplegar.sh "mensaje"`.
+  `prepararTodo()` ya corrido (planilla índice y carpeta en el Drive de info; IDs en las propiedades del script).
+- Seguimiento de Mediciones: paso 7 «Ejecución» tiene el botón que abre GH Cadenas en ese servicio.
 
-Falta (necesita OK de Felipe):
-1. Crear el proyecto Apps Script (cuenta info), `clasp push` + deploy, correr `prepararTodo()`, pegar la URL /exec en `backend.js`.
-2. Repo `infoghconsultora-prog/gh-cadenas` + GitHub Pages; sumar ese origen al OAuth Client de Seguimiento.
-3. Botón «Completar en GH Cadenas» en Seguimiento de Mediciones (link a `#s=<presupuesto>`).
-4. Probar con un servicio real desde el celular.
+Probado en vivo con la cuenta info: lee los servicios y equipos reales; guardar, subir, sincronizar a otro dispositivo, firmar, cerrar,
+reabrir y borrar (con una cadena suelta de prueba, ya borrada). La entrega a Seguimiento usa el mismo pedido que el panel
+(subirArchivoPaso, destino ccCompletadas, tipo = medición del servicio); no se probó con un servicio real para no ensuciar sus carpetas.
+
+Notas: el ingreso de Google y la autorización de permisos abren ventanas emergentes; en el navegador integrado las tiene que tocar Felipe.
