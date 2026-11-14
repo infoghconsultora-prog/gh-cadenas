@@ -1,7 +1,7 @@
 /* GH Cadenas — datos de ejemplo para el modo de prueba (sin servidor). No son datos de clientes. */
 window.DEMO_DATOS = {
-  usuario: { email: 'fm.ghconsultora@gmail.com', nombre: 'Felipe Manrique' },
-  equipo: [{ email: 'fm.ghconsultora@gmail.com', nombre: 'Felipe Manrique' }, { email: 'ep.ghconsultora@gmail.com', nombre: 'Elvio Palumbo' }],
+  usuario: { email: 'tecnico@ejemplo.com', nombre: 'Felipe Manrique' },
+  equipo: [{ email: 'tecnico@ejemplo.com', nombre: 'Felipe Manrique' }, { email: 'tecnico2@ejemplo.com', nombre: 'Elvio Palumbo' }],
   equiposCal: [
     { nombre: 'Decibelímetro Criffer Octava', numero_serie: '18042821', que_mide: 'Nivel de presión sonora', fecha_venc: '2027-07-03' },
     { nombre: 'Monitor de estrés térmico QUESTemp 34', numero_serie: 'TKG050012', que_mide: 'Carga térmica (TGBH)', fecha_venc: '2027-02-10' },
