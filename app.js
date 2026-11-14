@@ -359,10 +359,13 @@
       } else {
         if (!navigator.onLine) throw new Error('No hay señal. La cadena queda guardada en el teléfono; entregala cuando vuelva la conexión.');
         let pdfUrl = '';
-        if (C.servicio && (C.rotulo || {}).presupuesto) {
-          // la cadena firmada entra a Seguimiento de Mediciones como «CC completada» del servicio
-          const r = await Backend.llamar('subirArchivoPaso', { presupuestoGH: C.rotulo.presupuesto, empresa: C.rotulo.empresa, ordenCompra: C.ordenCompra || '',
-            destino: 'ccCompletadas', tipo: C.tipo, filename: nombreArchivo('.pdf'), contentMimeType: 'application/pdf', fileBase64: aBase64(pdf) }, 'seguimiento');
+        const serv = S.servicios.find((x) => claveServicio(x) === C.servicio);
+        if (serv && serv.presupuestoGH) {
+          // la cadena firmada entra a Seguimiento de Mediciones como «CC completada» del servicio, en la carpeta de su
+          // medición: el tipo tiene que ser el de la medición tal cual figura en Seguimiento (así se nombra la carpeta)
+          const tipoMed = Cadenas.tipoMedicion(C.tipo, (serv.mediciones || []).map((m) => m.tipoMuestra)) || DEF.titulo;
+          const r = await Backend.llamar('subirArchivoPaso', { presupuestoGH: serv.presupuestoGH, empresa: serv.empresa, ordenCompra: serv.ordenCompra || '',
+            destino: 'ccCompletadas', tipo: tipoMed, filename: nombreArchivo('.pdf'), contentMimeType: 'application/pdf', fileBase64: aBase64(pdf) }, 'seguimiento');
           if (!r.ok) throw new Error('Seguimiento de Mediciones no la recibió (' + (r.detalle || r.error) + ')');
           pdfUrl = r.url || '';
         }

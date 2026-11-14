@@ -164,11 +164,29 @@
     c('equipo', 'Equipo utilizado'), c('metodologia', 'Metodología')];
   const ROTULO_ATM = [c('t', 'T (°C)', 'num'), c('hr', 'HR %', 'num'), c('p', 'P (hPa)', 'num')];
   const ROTULO_CONTROL = [c('control', 'Control / personal interno')];
+  // Mismas palabras clave que usa Seguimiento de Mediciones (CC_PALABRAS_CLAVE) para unir cada CC con su medición.
+  const CLAVES = {
+    'CC Agua': ['agua'], 'CC AIRE': ['aire', 'pm10', 'pm 10', 'particulado', 'calidad de aire'],
+    'CC Contaminantes Quimicos': ['contaminante', 'quimic', 'silice', 'gases', 'vapores'], 'CC Efluentes': ['efluente'],
+    'CC Emisiones Gaseosas': ['emision', 'chimenea'], 'CC Ergonomia': ['ergonom'],
+    'CC Estrés Térmica': ['estres termic', 'termic', 'tgbh', 'calor'], 'CC Iluminación': ['iluminac'],
+    'CC LODO suelo': ['lodo', 'suelo', 'barro'], 'CC Puesta a tierra': ['puesta a tierra', 'pat', 'tierra'],
+    'CC RUIDO': ['ruido', 'dosimetr', 'sonor'], 'CC RUIDO AMBIENTAL': ['ruido ambiental', 'ruidos molestos', 'vecindario'],
+    'CC UVB': ['uvb', 'ultravioleta', 'uv'], 'CC VENTILACION': ['ventilac', 'caudal'], 'CC VIBRACIONES': ['vibracion'],
+    'CC VIBRACIONES AMBIENTAL': ['vibracion ambiental'],
+  };
   const norm = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
   const POR_ID = {}; LISTA.forEach((d) => { POR_ID[norm(d.id)] = d; });
   window.Cadenas = {
     LISTA, FUENTES, norm,
     def: (id) => POR_ID[norm(id)] || null,
+    /* De las mediciones del servicio, cuál corresponde a esta cadena (el texto tal cual está en Seguimiento). */
+    tipoMedicion(id, tipos) {
+      const claves = CLAVES[(POR_ID[norm(id)] || {}).id] || [];
+      const tiene = (t, k) => (k.length <= 3 ? new RegExp('(^|[^a-z0-9])' + k + '([^a-z0-9]|$)').test(t) : t.includes(k));
+      const lista = (tipos || []).filter(Boolean);
+      return lista.find((t) => claves.some((k) => tiene(norm(t), k))) || (lista.length === 1 ? lista[0] : '');
+    },
     rotulo: (d) => ROTULO.concat(d.control ? ROTULO_CONTROL : ROTULO_ATM),
     todosLosCampos: (d) => (d.tablas || []).reduce((a, t) => a.concat(t.campos), []).concat(d.extras || []),
   };
