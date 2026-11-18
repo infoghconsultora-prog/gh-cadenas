@@ -533,6 +533,7 @@
   $('btnDatos').addEventListener('click', () => bajar(new TextEncoder().encode(JSON.stringify(datosParaInforme(), null, 1)), nombreArchivo(' - datos.json'), 'application/json'));
   Cadenas.LISTA.forEach((d) => $('selSuelta').append(el('option', { value: d.id, text: d.titulo })));
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && tLocal) guardarLocal(); });
+  window.addEventListener('pagehide', () => { if (tLocal) guardarLocal(); });   // cerrar la pestaña no pierde lo último escrito
 
   window.App = { iniciar, toast, sinConexion: () => toast('Sin conexión: se trabaja con lo guardado en el teléfono.'), estado: S };
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});

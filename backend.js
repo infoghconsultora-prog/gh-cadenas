@@ -107,7 +107,7 @@
         if (seg.error === 'auth_failed' || propio.error === 'auth_failed') { $('loginMsg').hidden = false; $('loginMsg').textContent = 'Esta cuenta no tiene acceso.'; return; }
         throw new Error(seg.error || propio.error);
       }
-      $('login').hidden = true; $('app').hidden = false; cartel('');
+      $('login').hidden = true; $('app').hidden = false; cartel(''); $('btnSalir').hidden = false;
       versionVista = propio.version;
       const datos = { usuario: Object.assign(nombreDe(idToken), { email: seg.email }), equipo: seg.equipo || [], servicios: seg.servicios || [],
         equiposCal: seg.equiposCal || [], cadenas: propio.cadenas || [], empresas: propio.empresas || [] };
@@ -146,7 +146,7 @@
   }
   const HORAS_SIN_SENAL = 24;
   function abrirSinSenal(previa) {
-    $('login').hidden = true; $('app').hidden = false;
+    $('login').hidden = true; $('app').hidden = false; $('btnSalir').hidden = false;
     cartel('Sin señal: trabajando con lo guardado en el teléfono. Al volver la señal, ingresá para subir los cambios.');
     App.iniciar(Object.assign({}, previa, { cadenas: null }));
   }
@@ -169,8 +169,20 @@
       if (!$('app').hidden || !p || Date.now() - (p.cuando || 0) >= HORAS_SIN_SENAL * 3600000) return;
       abrirSinSenal(p);
     });
+    $('btnSalir').addEventListener('click', salir);
     iniciarGIS();
   });
+  /* Cerrar sesión (teléfono compartido): borra lo bajado del servidor y no vuelve a entrar solo.
+     Las cadenas sin subir NO se borran: quedan en el teléfono y se suben en el próximo ingreso. */
+  function salir() {
+    if (!confirm('¿Cerrar sesión en este teléfono?\n\nLo que todavía no se subió queda guardado y se sube cuando vuelvas a entrar.')) return;
+    clearInterval(timerSondeo); timerSondeo = null; idToken = null;
+    try { localStorage.removeItem(CLAVE_SESION); } catch (e) {}
+    try { google.accounts.id.disableAutoSelect(); } catch (e) {}
+    cartel(''); $('app').hidden = true; $('login').hidden = false;
+    $('loginMsg').hidden = false; $('loginMsg').textContent = 'Cerraste la sesión.';
+    history.replaceState(null, '', location.pathname);
+  }
   window.addEventListener('online', () => {
     if (DEMO) return;
     if (idToken) cargar(false);

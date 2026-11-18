@@ -18,3 +18,9 @@ Notas: el ingreso de Google y la autorización de permisos abren ventanas emerge
 - Base de empresas (backend @3): hoja Empresas + Ambiental + semilla de informes; aprende de CC cerradas.
 - UV con las 8 posiciones fijas, listas desplegables, calendario y fechas a ancho completo, rótulo único sin «Proyecto».
 - El service worker revalida siempre (no sirve copias viejas del navegador).
+
+## 18/11/2026 — v1.6.0 (revisión con las reglas de /nueva-webapp)
+- Siempre se entra con Google; sin señal solo con ingreso de las últimas 24 h; sesión vencida con señal → vuelve al ingreso.
+- Botón «Salir» (como Seguimiento Ambiental): borra lo bajado del servidor y desactiva el ingreso automático; lo no subido queda.
+- Flecha en listas desplegables; fecha por defecto = día de creación; guardado al cerrar la pestaña (pagehide).
+- Chequeos: check-shell OK, probar-offline OK, 375 px claro, CSP, sin innerHTML con datos, backend valida iss/aud/email_verified/exp + lista blanca.
