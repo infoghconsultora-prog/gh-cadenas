@@ -84,7 +84,10 @@
 
   function sesionVencida() {
     clearInterval(timerSondeo); timerSondeo = null; idToken = null;
-    cartel('La sesión venció. Ingresá de nuevo para subir los cambios; mientras tanto todo queda guardado en el teléfono.');
+    if (navigator.onLine) {      // con señal no se sigue sin sesión: vuelve a la pantalla de ingreso (lo cargado queda en el teléfono)
+      $('app').hidden = true; $('login').hidden = false;
+      $('loginMsg').hidden = false; $('loginMsg').textContent = 'La sesión venció. Ingresá de nuevo; lo que cargaste quedó guardado.';
+    } else cartel('La sesión venció y no hay señal: lo que cargues queda guardado en el teléfono hasta que vuelvas a ingresar.');
     try { google.accounts.id.prompt(); } catch (e) {}
   }
 
@@ -141,6 +144,12 @@
     if ($('gsiButton2')) google.accounts.id.renderButton($('gsiButton2'), { theme: 'outline', size: 'medium', text: 'signin_with', shape: 'pill' });
     google.accounts.id.prompt();            // si ya había ingresado en este teléfono, entra solo
   }
+  const HORAS_SIN_SENAL = 24;
+  function abrirSinSenal(previa) {
+    $('login').hidden = true; $('app').hidden = false;
+    cartel('Sin señal: trabajando con lo guardado en el teléfono. Al volver la señal, ingresá para subir los cambios.');
+    App.iniciar(Object.assign({}, previa, { cadenas: null }));
+  }
   window.addEventListener('load', () => {
     if (DEMO) {
       // modo de prueba: sin ingreso ni servidor; los servicios salen de demo.js
@@ -148,17 +157,25 @@
       App.iniciar(Object.assign({ demo: true }, window.DEMO_DATOS || { usuario: { email: '', nombre: 'Prueba' }, equipo: [], servicios: [], equiposCal: [], cadenas: [] }));
       return;
     }
-    // En el campo puede no haber señal: si este teléfono ya entró alguna vez, la app abre con lo último que bajó
-    // (servicios y cadenas guardadas) y el ingreso se pide en un aviso, sin bloquear el trabajo.
+    // Siempre se entra con Google: nadie que agarre el teléfono ve los datos sin ingresar.
+    // Única excepción: SIN SEÑAL (el ingreso de Google no anda) y con un ingreso de las últimas 24 h en este teléfono,
+    // para no dejar al técnico trabado en el campo. Al volver la señal se le pide ingresar.
     const previa = leerSesion();
-    if (previa && previa.usuario) {
-      $('login').hidden = true; $('app').hidden = false;
-      cartel(navigator.onLine ? 'Ingresá con Google para sincronizar.' : 'Sin señal: trabajando con lo guardado en el teléfono.');
-      App.iniciar(Object.assign({}, previa, { cadenas: null }));
-    }
+    const reciente = previa && previa.usuario && Date.now() - (previa.cuando || 0) < HORAS_SIN_SENAL * 3600000;
+    if (!navigator.onLine && reciente) abrirSinSenal(previa);
+    else if (!navigator.onLine) { $('loginMsg').hidden = false; $('loginMsg').textContent = 'No hay señal. Para entrar hace falta conexión (o haber ingresado en este teléfono en las últimas ' + HORAS_SIN_SENAL + ' horas).'; }
+    window.addEventListener('offline', () => {           // se cortó la señal en la pantalla de ingreso
+      const p = leerSesion();
+      if (!$('app').hidden || !p || Date.now() - (p.cuando || 0) >= HORAS_SIN_SENAL * 3600000) return;
+      abrirSinSenal(p);
+    });
     iniciarGIS();
   });
-  window.addEventListener('online', () => { if (!DEMO && idToken) cargar(false); });
+  window.addEventListener('online', () => {
+    if (DEMO) return;
+    if (idToken) cargar(false);
+    else if (!$('app').hidden) { cartel('Volvió la señal: ingresá con Google para seguir y subir los cambios.'); try { google.accounts.id.prompt(); } catch (e) {} }
+  });
 
   window.Backend = { llamar, demo: DEMO, conSesion: () => !!idToken, recargar: () => cargar(false) };
 })();

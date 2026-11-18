@@ -1,6 +1,6 @@
 /* GH Cadenas — Copyright (c) 2026 Felipe Manrique. Todos los derechos reservados. */
 // Cache de la cáscara para abrir sin señal. SUBIR VERSION EN CADA CAMBIO (si no, los teléfonos nunca lo reciben).
-const VERSION = 'gh-cadenas-v1.5.1';
+const VERSION = 'gh-cadenas-v1.5.2';
 const PREFIJO = 'gh-cadenas-v';
 const SHELL = ['./', 'index.html', 'styles.css', 'app.js', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-32.png', 'icons/icon-maskable-512.png', 'apple-touch-icon.png', 'logo-gh.png', 'backend.js', 'cadenas.js', 'almacen.js', 'firma.js', 'pdf.js', 'plantillas-cc.js', 'pdf-original.js', 'demo.js', 'vendor/pdf-lib.min.js'];
 
