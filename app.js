@@ -143,11 +143,10 @@
   async function crearCadena(s, d) {
     const clave = s ? claveServicio(s) : '';
     const previas = cadenasDe(clave).filter((c) => Cadenas.norm(c.tipo) === Cadenas.norm(d.id));
-    const f = s ? ((s.checklist && s.checklist.fechaCoordinada) || s.fechaMuestreo || hoy()) : hoy();
     const c = {
       id: Almacen.nuevoId(), servicio: clave, tipo: d.id, hoja: previas.length + 1, estado: 'borrador', creada: Date.now(), por: S.usuario.nombre || S.usuario.email || '',
       ordenCompra: s ? s.ordenCompra || '' : '',
-      rotulo: { empresa: s ? s.empresa : '', presupuesto: s ? s.presupuestoGH || '' : '', fecha: f < hoy() ? hoy() : f,
+      rotulo: { empresa: s ? s.empresa : '', presupuesto: s ? s.presupuestoGH || '' : '', fecha: hoy(),   // el día en que se crea la cadena
         metodologia: (d.metodos || []).length === 1 ? d.metodos[0] : '' },
       tablas: {}, extras: {}, observaciones: '', firmas: {},
     };
