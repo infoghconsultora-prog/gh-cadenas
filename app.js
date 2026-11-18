@@ -133,8 +133,25 @@
   /* =============================================================== editor de una cadena */
   function campoInput(campo, valor, alCambiar, bloqueada) {
     if (campo.tipo === 'select') {
-      const s = el('select', { disabled: bloqueada }, el('option', { value: '', text: '—' }), campo.op.map((o) => el('option', { value: o, text: o })));
+      // un valor guardado que ya no está en la lista (versión anterior) se conserva como una opción más
+      const ops = campo.op.concat(valor && !campo.op.includes(valor) ? [valor] : []);
+      const s = el('select', { disabled: bloqueada }, el('option', { value: '', text: '—' }), ops.map((o) => el('option', { value: o, text: o })));
       s.value = valor || ''; s.addEventListener('change', () => alCambiar(s.value)); return s;
+    }
+    if (campo.tipo === 'combo') {
+      // lista con los valores habituales y «Otro…» al final para escribir uno distinto
+      const OTRO = '__otro__';
+      const esOtro = !!valor && !campo.op.includes(valor);
+      const s = el('select', { disabled: bloqueada }, el('option', { value: '', text: '—' }),
+        campo.op.map((o) => el('option', { value: o, text: o })), el('option', { value: OTRO, text: 'Otro…' }));
+      const txt = el('input', { type: 'text', autocomplete: 'off', placeholder: 'Escribí cuál', 'aria-label': campo.et + ' (otro)', disabled: bloqueada, hidden: !esOtro });
+      s.value = esOtro ? OTRO : (valor || ''); txt.value = esOtro ? valor : '';
+      s.addEventListener('change', () => {
+        if (s.value === OTRO) { txt.hidden = false; txt.focus(); alCambiar(txt.value.trim()); }
+        else { txt.hidden = true; alCambiar(s.value); }
+      });
+      txt.addEventListener('input', () => alCambiar(txt.value));
+      return el('div', { class: 'combo' }, s, txt);
     }
     if (campo.tipo === 'sn') {
       const caja = el('div', { class: 'seg', role: 'group' });

@@ -11,7 +11,7 @@ globalThis.fetch = async (u) => ({ arrayBuffer: async () => fs.readFileSync(path
 for (const f of ['cadenas.js', 'pdf.js']) (0, eval)(fs.readFileSync(path.join(raiz, f), 'utf8'));
 const firma = 'data:image/png;base64,' + fs.readFileSync(path.join(raiz, 'pruebas', 'firma_ejemplo.png')).toString('base64');
 const relleno = (c, i) => c.tipo === 'num' ? String(((i + 1) * 12.5).toFixed(1)).replace('.', ',') : c.tipo === 'time' ? '10:' + String(10 + i).padStart(2, '0')
-  : c.tipo === 'date' ? '2026-11-20' : c.tipo === 'select' ? c.op[i % c.op.length] : c.tipo === 'sn' ? (i % 2 ? 'NO' : 'SI') : c.tipo === 'chips' ? c.op.slice(0, 2)
+  : c.tipo === 'date' ? '2026-11-20' : (c.tipo === 'select' || c.tipo === 'combo') ? c.op[i % c.op.length] : c.tipo === 'sn' ? (i % 2 ? 'NO' : 'SI') : c.tipo === 'chips' ? c.op.slice(0, 2)
   : /obs/.test(c.id) ? 'Sin novedades durante la medición' : /lat/.test(c.id) ? '-31.537500' : /lon/.test(c.id) ? '-68.536400' : c.et.split(' ')[0] + ' ' + (i + 1);
 let fallas = 0;
 for (const d of Cadenas.LISTA) {

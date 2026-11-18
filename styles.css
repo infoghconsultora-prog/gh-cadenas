@@ -282,3 +282,6 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; }
 
 .banner-sesion { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; justify-content: center; padding: 8px 16px; font-size: 13px; background: var(--amarillo-bg); color: var(--label); text-align: center; }
 .banner-sesion[hidden] { display: none; }
+
+.combo { display: flex; flex-direction: column; gap: 6px; }
+.combo input[hidden] { display: none; }
