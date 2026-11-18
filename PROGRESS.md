@@ -12,3 +12,9 @@ reabrir y borrar (con una cadena suelta de prueba, ya borrada). La entrega a Seg
 (subirArchivoPaso, destino ccCompletadas, tipo = medición del servicio); no se probó con un servicio real para no ensuciar sus carpetas.
 
 Notas: el ingreso de Google y la autorización de permisos abren ventanas emergentes; en el navegador integrado las tiene que tocar Felipe.
+
+## 18/11/2026 — v1.5.0
+- PDF «Original» (igual a la 2.ª hoja del Excel de cada CC) además del «Compacto»; elección en la cadena.
+- Base de empresas (backend @3): hoja Empresas + Ambiental + semilla de informes; aprende de CC cerradas.
+- UV con las 8 posiciones fijas, listas desplegables, calendario y fechas a ancho completo, rótulo único sin «Proyecto».
+- El service worker revalida siempre (no sirve copias viejas del navegador).
