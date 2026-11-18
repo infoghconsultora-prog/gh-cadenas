@@ -79,7 +79,7 @@
     b.hidden = !msg; $('bannerSesionMsg').textContent = msg || '';
   }
   const CLAVE_SESION = 'gh-cadenas:v1:sesion';
-  function guardarSesion(d) { try { localStorage.setItem(CLAVE_SESION, JSON.stringify({ usuario: d.usuario, equipo: d.equipo, servicios: d.servicios, equiposCal: d.equiposCal, cuando: Date.now() })); } catch (e) {} }
+  function guardarSesion(d) { try { localStorage.setItem(CLAVE_SESION, JSON.stringify({ usuario: d.usuario, equipo: d.equipo, servicios: d.servicios, equiposCal: d.equiposCal, empresas: d.empresas, cuando: Date.now() })); } catch (e) {} }
   function leerSesion() { try { return JSON.parse(localStorage.getItem(CLAVE_SESION) || 'null'); } catch (e) { return null; } }
 
   function sesionVencida() {
@@ -107,7 +107,7 @@
       $('login').hidden = true; $('app').hidden = false; cartel('');
       versionVista = propio.version;
       const datos = { usuario: Object.assign(nombreDe(idToken), { email: seg.email }), equipo: seg.equipo || [], servicios: seg.servicios || [],
-        equiposCal: seg.equiposCal || [], cadenas: propio.cadenas || [] };
+        equiposCal: seg.equiposCal || [], cadenas: propio.cadenas || [], empresas: propio.empresas || [] };
       guardarSesion(datos);
       App.iniciar(datos);
       if (primera) arrancarSondeo();

@@ -94,6 +94,7 @@
         <h2>Rótulo</h2>
         <div class="grid" id="cadRotulo"></div>
         <datalist id="dlEquipos"></datalist>
+        <datalist id="dlEmpresas"></datalist>
       </section>
       <div id="cadTablas"></div>
       <section class="card" id="secExtras">
@@ -111,6 +112,9 @@
         <div class="firmas" id="cadFirmas"></div>
       </section>
       <section class="card">
+        <div class="fmt-pdf" role="radiogroup" aria-label="Formato del PDF"><span class="muted">Formato del PDF:</span>
+          <label><input type="radio" name="fmtPdf" value="original" checked> Original (igual al Excel)</label>
+          <label><input type="radio" name="fmtPdf" value="compacto"> Compacto</label></div>
         <div id="accAbierta">
           <div class="barra"><button class="btn sec" id="btnPdf" type="button">Ver el PDF</button><span class="grow"></span>
             <button class="btn grande" id="btnEntregar" type="button">Cerrar y entregar</button></div>
@@ -135,6 +139,8 @@
 <script src="almacen.js"></script>
 <script src="firma.js"></script>
 <script src="pdf.js"></script>
+<script src="plantillas-cc.js"></script>
+<script src="pdf-original.js"></script>
 <script src="demo.js"></script>
 <script src="app.js"></script>
 <script src="backend.js"></script>

@@ -87,4 +87,27 @@ assert.equal(post({ action: 'guardarCadena', cadena: Object.assign({}, cad, { ac
 assert.equal(post({ action: 'getData' }).cadenas.length, 0);
 assert.equal(post({ action: 'cualquiera' }).error, 'unknown_action');
 assert.equal(JSON.parse(ctx.doGet().texto).error, 'use_post');
+// ---- base de empresas
+const amb = libro('ambiental'); hojas['1eAe3FV63yoQu0aLAvakGikaWf4MXwOheFPA9hC9HQ0o'] = amb; amb.hojas[0].setName('habilitaciones vencimientos');
+const filaAmb = (emp, cuit) => { const f = Array(22).fill(''); f[3] = emp; f[20] = cuit; return f; };
+amb.hojas[0].appendRow(Array(22).fill('enc')); amb.hojas[0].appendRow(filaAmb('ACER', '')); amb.hojas[0].appendRow(filaAmb('', ''));
+amb.hojas[0].appendRow(filaAmb('BIOESTANCIA', '30-71890427-3')); amb.hojas[0].appendRow(filaAmb('Don Evaristo', '30-1'));
+let im = post({ action: 'importarEmpresas', empresas: [{ nombre: 'ACER SAN JUAN S.R.L.', cuit: '30-71406014-3', ubicacion: 'Ruta 20 Km 8.5', localidad: '9 de Julio', cp: '5402', provincia: 'San Juan' },
+  { nombre: 'BIO ESTANCIA S.R.L.', ubicacion: 'Juan Díaz de Solís' }] });
+assert.equal(im.guardadas, 2);
+let emps = post({ action: 'getData' }).empresas;
+const acer = emps.find((e) => e.nombre === 'ACER SAN JUAN S.R.L.');
+assert.equal(acer.cp, '5402'); assert.equal(acer.ambiental, 'ACER');                  // «ACER» de Ambiental se une con la de la base
+assert.ok(emps.find((e) => e.nombre === 'Don Evaristo' && e.cuit === '30-1'));          // las que solo están en Ambiental entran con su CUIT
+assert.equal(emps.filter((e) => /acer/i.test(e.nombre)).length, 1);
+// mientras se escribe (borrador) no aprende
+post({ action: 'guardarCadena', cadena: { id: 'cemp000000', tipo: 'CC UVB', actualizado: Date.now(), rotulo: { empresa: 'Metal', cuit: '30-9' } } });
+assert.ok(!post({ action: 'getData' }).empresas.find((e) => e.nombre === 'Metal'));
+// una cadena entregada enseña los datos nuevos, sin borrar los que ya estaban
+post({ action: 'guardarCadena', cadena: { id: 'cemp000001', tipo: 'CC UVB', estado: 'cerrada', actualizado: Date.now(), rotulo: { empresa: 'Acer San Juan SRL', sitio: 'Taller de soldadura', cuit: '' } } });
+emps = post({ action: 'getData' }).empresas;
+const acer2 = emps.find((e) => /acer/i.test(e.nombre));
+assert.equal(acer2.sitio, 'Taller de soldadura'); assert.equal(acer2.cuit, '30-71406014-3'); assert.equal(emps.filter((e) => /acer/i.test(e.nombre)).length, 1);
+post({ action: 'guardarCadena', cadena: { id: 'cemp000002', tipo: 'CC AIRE', estado: 'cerrada', actualizado: Date.now(), rotulo: { empresa: 'Nueva Empresa SA', ubicacion: 'Calle 5' } } });
+assert.ok(post({ action: 'getData' }).empresas.find((e) => e.nombre === 'Nueva Empresa SA' && e.ubicacion === 'Calle 5'));
 console.log('backend: todas las pruebas pasaron');

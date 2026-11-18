@@ -12,6 +12,7 @@
   const ATM = [c('temp', 'Temperatura ambiente', 'num', { u: '°C' }), c('presion', 'Presión atmosférica', 'num', { u: 'hPa' }),
     c('humedad', 'Humedad relativa', 'num', { u: '%' })];
   const GPS = [c('lat', 'Latitud'), c('lon', 'Longitud')];
+  const POS_UV = ['Cabeza Izq.', 'Cabeza Der.', 'Pecho Izq.', 'Pecho Der.', 'Abdomen Izq.', 'Abdomen Der.', 'Cadera Izq.', 'Cadera Der.'];
   const VIENTO_DIR = ['N', 'NE', 'E', 'SE', 'S', 'SO', 'O', 'NO', 'Variable', 'Calmo'];
   const VIENTO = ['Calmo', 'Brisa (menos de 5 km/h)', 'Leve (5 a 20 km/h)', 'Moderado (20 a 30 km/h)', 'Fuerte (más de 30 km/h)'];
   const CIELO = ['Cielo despejado', 'Parcialmente nublado', 'Nublado', 'Lluvia', 'Noche (sin luz natural)'];
@@ -87,9 +88,8 @@
       extras: [c('jornada', 'Jornada laboral', 'combo', { op: JORNADA })] },
     { id: 'CC UVB', metodos: ['Res. MTESS 295/03 – lectura directa con radiómetro UV'], titulo: 'Radiación UV', fuente: 'directa', informe: 'uv', grupo: 'Ambiente laboral',
       nota: 'El radiómetro muestra la lectura en µW/cm²: se anota acá con los tiempos.',
-      tablas: [{ id: 'filas', titulo: 'Lecturas', item: 'Lectura', campos: [
-        c('sitio', 'Sitio de medición (posición del cuerpo)', 'combo', { c: 'Sitio', op: ['Frente Izq.', 'Frente Der.', 'Pecho Izq.', 'Pecho Der.', 'Abdomen Izq.',
-          'Abdomen Der.', 'Cadera Izq.', 'Cadera Der.', 'Mano Izq.', 'Mano Der.', 'Antebrazo Izq.', 'Antebrazo Der.', 'Cuello', 'Ojos (a la altura de la careta)'] }),
+      tablas: [{ id: 'filas', titulo: 'Lecturas', item: 'Lectura', filasIniciales: POS_UV.map((x) => ({ sitio: x })), campos: [
+        c('sitio', 'Posición del cuerpo', 'select', { c: 'Sitio', op: POS_UV }),
         c('lectura', 'Lectura', 'num', { u: 'µW/cm²' }),
         c('t_medicion', 'Tiempo de medición', 'num', { u: 'min', c: 'T. med.' }), c('t_exposicion', 'Tiempo de exposición', 'num', { u: 'h', c: 'T. exp.' })] }],
       extras: [c('jornada', 'Tiempo de jornada laboral', 'num', { u: 'h' }),
@@ -127,7 +127,7 @@
         c('directa', 'Lectura directa', 'sn', { c: 'Directa' }),
         c('caudal', 'Caudal', 'num', { u: 'l/min' }), c('tiempo', 'Tiempo de muestreo', 'num', { u: 'min' }),
         c('valor', 'Valor leído (lectura directa)', 'text', { c: 'Valor' }), c('unidad', 'Unidad', 'select', { op: ['ppm', 'mg/m³', '%', 'µg/m³', 'fibras/cm³'] }), c('obs', 'Observaciones')] }] },
-    { id: 'CC AIRE', metodos: ['EPA IO-2.3 (PM10, bajo volumen)', 'EPA IO-2.1 (PM10, alto volumen)'], titulo: 'Calidad de aire', fuente: 'laboratorio', informe: 'aire', grupo: 'Ambiental', control: true,
+    { id: 'CC AIRE', metodos: ['EPA IO-2.3 (PM10, bajo volumen)', 'EPA IO-2.1 (PM10, alto volumen)'], titulo: 'Calidad de aire', fuente: 'laboratorio', informe: 'aire', grupo: 'Ambiental',
       nota: 'El filtro se pesa en laboratorio. Acá va el muestreo de cada sitio y, cuando estén, los pesos.',
       tablas: [{ id: 'filas', titulo: 'Sitios', item: 'Sitio', campos: [
         c('sitio', 'ID sitio'), c('filtro', 'ID filtro'), c('f_ini', 'Fecha de inicio', 'date'), c('h_ini', 'Hora de inicio', 'time'),
@@ -137,7 +137,7 @@
         c('humedad', 'Humedad', 'num', { u: '%' }), c('lat', 'Latitud'), c('lon', 'Longitud'),
         c('p_ini', 'Peso inicial', 'num', { u: 'g' }), c('f_p_ini', 'Fecha de pesada inicial', 'date', { c: 'F. pesada ini' }),
         c('p_fin', 'Peso final', 'num', { u: 'g' }), c('f_p_fin', 'Fecha de pesada final', 'date', { c: 'F. pesada fin' })] }] },
-    { id: 'CC Agua', metodos: ['Standard Methods 1060 – toma y conservación de muestras', 'ISO 5667'], titulo: 'Agua', fuente: 'laboratorio', informe: 'agua', grupo: 'Ambiental', control: true,
+    { id: 'CC Agua', metodos: ['Standard Methods 1060 – toma y conservación de muestras', 'ISO 5667'], titulo: 'Agua', fuente: 'laboratorio', informe: 'agua', grupo: 'Ambiental',
       nota: 'La muestra va al laboratorio. Acá van envases, preservantes y los datos de campo.',
       tablas: [{ id: 'filas', titulo: 'Muestras', item: 'Muestra', campos: LIQ }] },
     { id: 'CC Efluentes', metodos: ['Standard Methods 1060 – toma y conservación de muestras', 'ISO 5667-10'], titulo: 'Efluentes', fuente: 'laboratorio', informe: 'efluentes', grupo: 'Ambiental',
@@ -176,11 +176,13 @@
         c('obs', 'Observaciones')] }] },
   ];
   const FUENTES = { equipo: 'Informe del software del equipo', directa: 'Lectura directa del equipo', laboratorio: 'Resultado del laboratorio' };
-  const ROTULO = [c('empresa', 'Nombre de empresa'), c('cuit', 'CUIT'), c('ubicacion', 'Ubicación'), c('sitio', 'Sitio / planta'),
-    c('presupuesto', 'Presupuesto'), c('fecha', 'Fecha de muestreo', 'date'), c('fecha_fin', 'Fecha de finalización', 'date'),
+  // Rótulo igual en todas las cadenas: el de la hoja normalizada de «6. CC» (empresa, sitio, CUIT, presupuesto, ubicación,
+  // T/HR/P, fechas, equipo, metodología) + localidad, CP y provincia, que los informes piden siempre.
+  const ROTULO = [c('empresa', 'Nombre de empresa'), c('sitio', 'Sitio / planta'), c('cuit', 'CUIT'), c('presupuesto', 'Presupuesto'),
+    c('ubicacion', 'Ubicación (dirección)'), c('localidad', 'Localidad'), c('cp', 'C.P.'), c('provincia', 'Provincia'),
+    c('t', 'T (°C)', 'num'), c('hr', 'HR %', 'num'), c('p', 'P (hPa)', 'num'),
+    c('fecha', 'Fecha de muestreo', 'date'), c('fecha_fin', 'Fecha de finalización', 'date'),
     c('equipo', 'Equipo utilizado'), c('metodologia', 'Metodología')];
-  const ROTULO_ATM = [c('t', 'T (°C)', 'num'), c('hr', 'HR %', 'num'), c('p', 'P (hPa)', 'num')];
-  const ROTULO_CONTROL = [c('control', 'Control / personal interno')];
   // Mismas palabras clave que usa Seguimiento de Mediciones (CC_PALABRAS_CLAVE) para unir cada CC con su medición.
   const CLAVES = {
     'CC Agua': ['agua'], 'CC AIRE': ['aire', 'pm10', 'pm 10', 'particulado', 'calidad de aire'],
@@ -204,8 +206,7 @@
       const lista = (tipos || []).filter(Boolean);
       return lista.find((t) => claves.some((k) => tiene(norm(t), k))) || (lista.length === 1 ? lista[0] : '');
     },
-    rotulo: (d) => ROTULO.map((x) => (x.id === 'metodologia' && d.metodos ? Object.assign({}, x, { tipo: 'combo', op: d.metodos }) : x))
-      .concat(d.control ? ROTULO_CONTROL : ROTULO_ATM),
+    rotulo: (d) => ROTULO.map((x) => (x.id === 'metodologia' && d.metodos ? Object.assign({}, x, { tipo: 'combo', op: d.metodos }) : x)),
     todosLosCampos: (d) => (d.tablas || []).reduce((a, t) => a.concat(t.campos), []).concat(d.extras || []),
   };
 })();

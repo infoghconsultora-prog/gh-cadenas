@@ -285,3 +285,9 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; }
 
 .combo { display: flex; flex-direction: column; gap: 6px; }
 .combo input[hidden] { display: none; }
+
+.mini.cal { padding: 6px 10px; display: inline-flex; align-items: center; }
+.mini.cal svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+input[type=date]::-webkit-calendar-picker-indicator { cursor: pointer; opacity: .8; }
+.fmt-pdf { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; margin: 0 0 12px; font-size: 15px; }
+.fmt-pdf label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }

@@ -14,7 +14,7 @@
     for (const h of hijos.flat()) if (h !== null && h !== undefined && h !== false) e.append(h.nodeType ? h : document.createTextNode(h));
     return e;
   };
-  const S = { usuario: {}, servicios: [], equiposCal: [], cadenas: new Map(), demo: false, iniciada: false, verTerminados: false, busca: '' };
+  const S = { usuario: {}, servicios: [], equiposCal: [], empresas: [], cadenas: new Map(), demo: false, iniciada: false, verTerminados: false, busca: '' };
   let C = null, DEF = null;                 // cadena abierta y su definición
   let tLocal = null, tSubir = null;
 
@@ -46,6 +46,32 @@
   const cadenasDe = (clave) => Array.from(S.cadenas.values()).filter((c) => c.servicio === clave && !c.borrada).sort((a, b) => (a.creada || 0) - (b.creada || 0));
   const conDato = (f) => Object.values(f).some((v) => v !== '' && v !== null && v !== undefined && !(Array.isArray(v) && !v.length));
   const filasCon = (c) => Object.values(c.tablas || {}).reduce((a, f) => a + f.filter(conDato).length, 0);
+
+  /* ---------- base de empresas ---------- */
+  const CAMPOS_EMP = ['cuit', 'ubicacion', 'localidad', 'cp', 'provincia', 'sitio'];
+  function claveEmpresa(nombre) {
+    let t = Cadenas.norm(nombre).replace(/\(.*?\)/g, ' ').replace(/[.,\-]/g, ' ').replace(/\s+/g, ' ').trim();
+    const suf = /\s(s\s?a\s?s?|s\s?r\s?l|s\s?a\s?i\s?c|i\s?c\s?s\s?a|s\s?c\s?a|sa|srl|sas|scop|ltda)$/;
+    while (suf.test(t)) t = t.replace(suf, '').trim();
+    return t;
+  }
+  /* La empresa que corresponde a un nombre: igual, o una que empieza con la otra («ACER» ↔ «ACER SAN JUAN S.R.L.»). */
+  function buscarEmpresa(nombre) {
+    const k = claveEmpresa(nombre);
+    if (!k) return null;
+    const local = (recordar.get('empresas') || {});
+    const todas = S.empresas.concat(Object.entries(local).map(([n, e]) => Object.assign({ nombre: n }, e)));
+    return todas.find((e) => claveEmpresa(e.nombre) === k || (e.ambiental && claveEmpresa(e.ambiental) === k))
+      || (k.length >= 3 ? todas.find((e) => { const x = claveEmpresa(e.nombre); return x.indexOf(k + ' ') === 0 || k.indexOf(x + ' ') === 0; }) : null) || null;
+  }
+  /* Completa los datos vacíos del rótulo con los de la base. Devuelve cuántos completó. */
+  function completarEmpresa(rot) {
+    const e = buscarEmpresa(rot.empresa);
+    if (!e) return 0;
+    let n = 0;
+    CAMPOS_EMP.forEach((k) => { if (e[k] && !String(rot[k] || '').trim()) { rot[k] = e[k]; n++; } });
+    return n;
+  }
 
   /* =============================================================== lista de servicios */
   function pintarServicios() {
@@ -117,15 +143,16 @@
   async function crearCadena(s, d) {
     const clave = s ? claveServicio(s) : '';
     const previas = cadenasDe(clave).filter((c) => Cadenas.norm(c.tipo) === Cadenas.norm(d.id));
-    const memoria = (s && (recordar.get('empresas') || {})[s.empresa]) || {};
     const f = s ? ((s.checklist && s.checklist.fechaCoordinada) || s.fechaMuestreo || hoy()) : hoy();
     const c = {
       id: Almacen.nuevoId(), servicio: clave, tipo: d.id, hoja: previas.length + 1, estado: 'borrador', creada: Date.now(), por: S.usuario.nombre || S.usuario.email || '',
       ordenCompra: s ? s.ordenCompra || '' : '',
-      rotulo: { empresa: s ? s.empresa : '', presupuesto: s ? s.presupuestoGH || '' : '', fecha: f < hoy() ? hoy() : f, cuit: memoria.cuit || '', ubicacion: memoria.ubicacion || '', sitio: memoria.sitio || '' },
+      rotulo: { empresa: s ? s.empresa : '', presupuesto: s ? s.presupuestoGH || '' : '', fecha: f < hoy() ? hoy() : f,
+        metodologia: (d.metodos || []).length === 1 ? d.metodos[0] : '' },
       tablas: {}, extras: {}, observaciones: '', firmas: {},
     };
-    (d.tablas || []).forEach((t) => { c.tablas[t.id] = [{}]; });
+    completarEmpresa(c.rotulo);
+    (d.tablas || []).forEach((t) => { c.tablas[t.id] = t.filasIniciales ? t.filasIniciales.map((f) => Object.assign({}, f)) : [{}]; });
     S.cadenas.set(c.id, c); await Almacen.guardar(c); programarSubida();
     location.hash = 'c=' + c.id;
   }
@@ -177,6 +204,14 @@
       autocomplete: 'off', autocapitalize: campo.tipo === 'num' ? 'off' : 'sentences', disabled: bloqueada, enterkeyhint: 'next' });
     inp.value = valor === null || valor === undefined ? '' : valor;
     inp.addEventListener('input', () => alCambiar(inp.value));
+    if (campo.tipo === 'date' && !bloqueada) {
+      const cal = el('button', { type: 'button', class: 'mini cal', 'aria-label': 'Abrir el calendario', title: 'Calendario' });
+      cal.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>';
+      cal.addEventListener('click', () => { try { inp.showPicker(); } catch (e) { inp.focus(); inp.click(); } });
+      const b = el('button', { type: 'button', class: 'mini', text: 'Hoy' });
+      b.addEventListener('click', () => { inp.value = hoy(); alCambiar(inp.value); });
+      return el('div', { class: 'con-boton' }, inp, cal, b);
+    }
     if (campo.tipo === 'time' && !bloqueada) {
       const b = el('button', { type: 'button', class: 'mini', text: 'Ahora' });
       b.addEventListener('click', () => { inp.value = ahora(); alCambiar(inp.value); });
@@ -190,7 +225,7 @@
     const inp = ctrl.matches('input,select') ? ctrl : ctrl.querySelector('input,select');
     const id = idp + '_' + campo.id;
     if (inp) inp.id = id;
-    const ancho = campo.tipo === 'chips' || /^(obs|tarea|nombre|puesto|sector|sitio|mas|equipo|contaminante|area|empresa|ubicacion|metodologia)$/.test(campo.id);
+    const ancho = campo.tipo === 'chips' || campo.tipo === 'date' || /^(obs|tarea|nombre|puesto|sector|sitio|mas|equipo|contaminante|area|empresa|ubicacion|metodologia)$/.test(campo.id);
     return el('div', { class: 'campo' + (ancho ? ' ancho' : '') }, inp ? el('label', { for: id, text: campo.et }) : el('span', { class: 'lbl', text: campo.et }), ctrl);
   }
   function botonGps(destino, campos, repintar) {
@@ -217,6 +252,14 @@
     Cadenas.rotulo(DEF).forEach((campo) => {
       const b = campoBloque(campo, C.rotulo[campo.id], (v) => { C.rotulo[campo.id] = v; cambio(); if (campo.id === 'equipo') avisoEquipo(); }, bloq, 'r');
       if (campo.id === 'equipo') { b.querySelector('input').setAttribute('list', 'dlEquipos'); b.append(el('small', { id: 'avisoEquipo', class: 'aviso-eq' })); }
+      if (campo.id === 'empresa') {
+        const inp = b.querySelector('input'); inp.setAttribute('list', 'dlEmpresas');
+        // al elegir una empresa conocida se completan CUIT, ubicación, localidad, CP, provincia y sitio que estén vacíos
+        inp.addEventListener('change', () => {
+          const n = completarEmpresa(C.rotulo);
+          if (n) { cambio(); CAMPOS_EMP.forEach((k) => { const x = $('r_' + k); if (x && x.value !== (C.rotulo[k] || '')) x.value = C.rotulo[k] || ''; }); toast('Se completaron ' + n + ' datos de la empresa'); }
+        });
+      }
       rot.append(b);
     });
     avisoEquipo();
@@ -308,7 +351,7 @@
     try {
       await Almacen.poner(C);
       const e = recordar.get('empresas') || {}, r = C.rotulo || {};
-      if (r.empresa) { e[r.empresa] = { cuit: r.cuit || '', ubicacion: r.ubicacion || '', sitio: r.sitio || '' }; recordar.set('empresas', e); }
+      if (r.empresa && C.estado === 'cerrada') { e[r.empresa] = Object.fromEntries(CAMPOS_EMP.map((k) => [k, r[k] || ''])); recordar.set('empresas', e); }
     } catch (err) { toast('No se pudo guardar en este teléfono'); return; }
     estadoGuardado(); programarSubida();
   }
@@ -343,7 +386,20 @@
     const limpio = (s) => String(s || '').replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim();
     return limpio(C.tipo + (C.hoja > 1 ? ' hoja ' + C.hoja : '') + ' - ' + ((C.rotulo || {}).empresa || 'sin empresa') + ' - ' + ((C.rotulo || {}).fecha || hoy())) + ext;
   }
-  async function hacerPdf() { if (tLocal) await guardarLocal(); return PdfCadena.generar(C, DEF); }
+  const CLAVE_FMT = 'gh-cadenas:v1:formatoPdf';
+  function formatoPdf() { const r = document.querySelector('input[name=fmtPdf]:checked'); return r ? r.value : 'original'; }
+  function iniciarFormatoPdf() {
+    let f = 'original'; try { f = localStorage.getItem(CLAVE_FMT) || 'original'; } catch (e) { /* sin almacenamiento */ }
+    document.querySelectorAll('input[name=fmtPdf]').forEach((r) => {
+      r.checked = r.value === f;
+      r.addEventListener('change', () => { try { localStorage.setItem(CLAVE_FMT, formatoPdf()); } catch (e) { /* sin almacenamiento */ } });
+    });
+  }
+  async function hacerPdf() {
+    if (tLocal) await guardarLocal();
+    if (formatoPdf() === 'original' && window.PdfOriginal && (window.PLANTILLAS_CC || {})[DEF.id]) return PdfOriginal.generar(C, DEF);
+    return PdfCadena.generar(C, DEF);
+  }
   function bajar(bytes, nombre, tipo) {
     const url = URL.createObjectURL(new Blob([bytes], { type: tipo })); const a = el('a', { href: url, download: nombre });
     document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 30000);
@@ -431,6 +487,11 @@
   /* =============================================================== arranque */
   async function iniciar(d) {
     S.usuario = d.usuario || {}; S.servicios = d.servicios || []; S.equiposCal = d.equiposCal || []; S.demo = !!d.demo;
+    if (d.empresas) S.empresas = d.empresas;
+    const nombres = new Set(S.empresas.map((e) => e.nombre).concat(S.servicios.map((x) => x.empresa)).filter(Boolean));
+    // si el teléfono todavía tiene la página anterior en caché, la lista no existe: se crea
+    if (!$('dlEmpresas')) document.body.append(el('datalist', { id: 'dlEmpresas' }));
+    $('dlEmpresas').replaceChildren(...Array.from(nombres).sort((a, b) => a.localeCompare(b)).map((n) => el('option', { value: n })));
     (await Almacen.todas()).forEach((c) => { if (!S.cadenas.has(c.id)) S.cadenas.set(c.id, c); });
     if (!S.demo && d.cadenas) {              // d.cadenas es null cuando se abre sin sesión: no se toca lo local
       try {
@@ -465,6 +526,7 @@
     sel.value = ''; crearCadena(null, d);
   });
   $('cadObs').addEventListener('input', () => { if (C) { C.observaciones = $('cadObs').value; cambio(); } });
+  iniciarFormatoPdf();
   $('btnPdf').addEventListener('click', verPdf); $('btnPdf2').addEventListener('click', verPdf);
   $('btnEntregar').addEventListener('click', entregar);
   $('btnReabrir').addEventListener('click', reabrir);

@@ -20,4 +20,7 @@ window.DEMO_DATOS = {
       checklist: { ccUrl: 'CC VIBRACIONES | https://example.invalid/cc-vib', fechaCoordinada: '2026-10-08', tecnicoAsignado: 'Felipe Manrique', ccLista: true,
         medicionRealizada: true, ccCompletadas: 'CC VIBRACIONES | https://example.invalid/hecha', envioFinal: true } }],
   cadenas: [],
+  empresas: [
+    { nombre: 'METALÚRGICA DEL OESTE S.A. (ejemplo)', cuit: '30-11111111-1', ubicacion: 'Ruta 40 km 12', localidad: 'Pocito', cp: '5427', provincia: 'San Juan', sitio: 'Planta 1' },
+    { nombre: 'BODEGA LOS ÁLAMOS S.R.L. (ejemplo)', cuit: '30-22222222-2', ubicacion: 'Calle 9 y Mendoza', localidad: 'Caucete', cp: '5442', provincia: 'San Juan', sitio: '' }],
 };
