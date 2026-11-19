@@ -459,8 +459,9 @@
   }
   async function hacerPdf() {
     if (tLocal) await guardarLocal();
-    if (formatoPdf() === 'original' && window.PdfOriginal && (window.PLANTILLAS_CC || {})[DEF.id]) return PdfOriginal.generar(C, DEF);
-    return PdfCadena.generar(C, DEF);
+    const bytes = formatoPdf() === 'original' && window.PdfOriginal && (window.PLANTILLAS_CC || {})[DEF.id]
+      ? await PdfOriginal.generar(C, DEF) : await PdfCadena.generar(C, DEF);
+    try { return await PdfCadena.adjuntarDatos(bytes, datosParaInforme()); } catch (e) { return bytes; }   // sin adjunto, el PDF igual sirve
   }
   function bajar(bytes, nombre, tipo) {
     const url = URL.createObjectURL(new Blob([bytes], { type: tipo })); const a = el('a', { href: url, download: nombre });

@@ -30,6 +30,10 @@ for (const d of Cadenas.LISTA) {
     // los mismos datos, como los deja la app al cerrar la cadena (para probar el pase a GH Informes)
     fs.writeFileSync(path.join(salida, d.id + ' - datos.json'), JSON.stringify({ formato: 'gh-cadena/1', id: cad.id, tipo: d.id, informe: d.informe || '', titulo: d.titulo,
       hoja: 1, rotulo: cad.rotulo, tablas: cad.tablas, extras: cad.extras, observaciones: cad.observaciones, por: cad.por }, null, 1));
+    // el PDF lleva adentro los datos para GH Informes
+    const datos = { formato: 'gh-cadena/1', id: cad.id, tipo: d.id, informe: d.informe || '', titulo: d.titulo, hoja: 1, rotulo: cad.rotulo, tablas: cad.tablas, extras: cad.extras, observaciones: cad.observaciones, por: cad.por };
+    const conDatos = await PdfCadena.adjuntarDatos(await PdfOriginal.generar(cad, d), datos);
+    fs.writeFileSync(path.join(salida, d.id + ' (original, con datos).pdf'), conDatos);
     const orig = await PdfOriginal.generar(cad, d);
     const docO = await window.PDFLib.PDFDocument.load(orig);
     fs.writeFileSync(path.join(salida, d.id + ' (original).pdf'), orig);

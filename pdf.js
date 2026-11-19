@@ -185,5 +185,17 @@
     doc.setTitle(titulo + ' - ' + limpio(r.empresa || '')); doc.setAuthor('GH Consultora'); doc.setCreator('GH Cadenas');
     return doc.save();
   }
-  window.PdfCadena = { generar, fechaEs };
+  /* Mete los datos de la cadena DENTRO del PDF (adjunto «gh-cadena-datos.json», el mismo contenido que «… - datos.json»):
+     subiendo solo el PDF a GH Informes se completan la empresa, la fecha, el equipo y las tablas. */
+  const ADJUNTO = 'gh-cadena-datos.json';
+  async function adjuntarDatos(bytes, datos) {
+    const { PDFDocument } = window.PDFLib;
+    const doc = await PDFDocument.load(bytes);
+    const ahora = new Date();
+    await doc.attach(new TextEncoder().encode(JSON.stringify(datos)), ADJUNTO, {
+      mimeType: 'application/json', description: 'Datos de la cadena de custodia (GH Cadenas) para GH Informes',
+      creationDate: ahora, modificationDate: ahora });
+    return doc.save();
+  }
+  window.PdfCadena = { generar, fechaEs, adjuntarDatos, ADJUNTO };
 })();
