@@ -50,19 +50,28 @@
   /* ---------- base de empresas ---------- */
   const CAMPOS_EMP = ['cuit', 'ubicacion', 'localidad', 'cp', 'provincia', 'sitio'];
   function claveEmpresa(nombre) {
-    let t = Cadenas.norm(nombre).replace(/\(.*?\)/g, ' ').replace(/[.,\-]/g, ' ').replace(/\s+/g, ' ').trim();
-    const suf = /\s(s\s?a\s?s?|s\s?r\s?l|s\s?a\s?i\s?c|i\s?c\s?s\s?a|s\s?c\s?a|sa|srl|sas|scop|ltda)$/;
-    while (suf.test(t)) t = t.replace(suf, '').trim();
-    return t;
+    let t = Cadenas.norm(nombre);
+    // la razón social (S.A., S.R.L.…) no cuenta en ningún lugar del nombre; lo de entre paréntesis SÍ (es el sitio: «(Veladero)»)
+    t = ' ' + t.replace(/[.,\-()\/]/g, ' ').replace(/\s+/g, ' ') + ' ';
+    const leg = / (s a i c|i c s a|s a s|s r l|s c a|s a|saic|icsa|sas|srl|sca|scop|ltda|sa) /;
+    while (leg.test(t)) t = t.replace(leg, ' ');
+    return t.replace(/\s+/g, ' ').trim();
   }
-  /* La empresa que corresponde a un nombre: igual, o una que empieza con la otra («ACER» ↔ «ACER SAN JUAN S.R.L.»). */
+  /* La empresa que corresponde a un nombre: la misma, o una cuyo nombre completo empieza con el escrito («ACER» → «ACER SAN JUAN»).
+     Un nombre más específico NO toma los datos de uno más general: «CINCA (Veladero)» no es la planta de «CINCA»;
+     de esa solo se toma el CUIT (parcial). */
   function buscarEmpresa(nombre) {
     const k = claveEmpresa(nombre);
     if (!k) return null;
     const local = (recordar.get('empresas') || {});
     const todas = S.empresas.concat(Object.entries(local).map(([n, e]) => Object.assign({ nombre: n }, e)));
-    return todas.find((e) => claveEmpresa(e.nombre) === k || (e.ambiental && claveEmpresa(e.ambiental) === k))
-      || (k.length >= 3 ? todas.find((e) => { const x = claveEmpresa(e.nombre); return x.indexOf(k + ' ') === 0 || k.indexOf(x + ' ') === 0; }) : null) || null;
+    const igual = todas.find((e) => claveEmpresa(e.nombre) === k || (e.ambiental && claveEmpresa(e.ambiental) === k));
+    if (igual) return igual;
+    if (k.length < 3) return null;
+    const larga = todas.find((e) => claveEmpresa(e.nombre).indexOf(k + ' ') === 0);
+    if (larga) return larga;
+    const general = todas.find((e) => { const x = claveEmpresa(e.nombre); return x.length >= 3 && k.indexOf(x + ' ') === 0; });
+    return general && general.cuit ? { nombre: general.nombre, cuit: general.cuit, parcial: true } : null;
   }
   /* Completa los datos vacíos del rótulo con los de la base. Devuelve cuántos completó. */
   function completarEmpresa(rot) {
@@ -72,6 +81,48 @@
     CAMPOS_EMP.forEach((k) => { if (e[k] && !String(rot[k] || '').trim()) { rot[k] = e[k]; n++; } });
     return n;
   }
+
+  /* Lista de sugerencias propia (la del navegador casi no se ve en el celular): botones grandes con nombre y detalle
+     debajo del campo. fuente() da [{v, sub, dato}]; se filtra por lo escrito (sin acentos ni mayúsculas). */
+  function sugerencias(inp, fuente, alElegir) {
+    const caja = el('div', { class: 'sug', role: 'listbox', hidden: true });
+    const flecha = el('button', { type: 'button', class: 'sug-flecha', 'aria-label': 'Ver la lista', tabindex: '-1' });
+    flecha.innerHTML = '<svg viewBox="0 0 12 8" aria-hidden="true"><path d="M1 1.5l5 5 5-5"/></svg>';
+    const envol = el('div', { class: 'sug-envol' });
+    inp.replaceWith(envol); envol.append(inp, flecha, caja);
+    inp.removeAttribute('list'); inp.setAttribute('autocomplete', 'off'); inp.setAttribute('aria-autocomplete', 'list');
+    let todo = false;
+    function pintar() {
+      const q = Cadenas.norm(inp.value).trim();
+      const items = fuente().filter((x) => todo || !q || Cadenas.norm(x.v + ' ' + (x.sub || '')).includes(q)).slice(0, todo ? 80 : 12);
+      caja.replaceChildren(...items.map((x) => {
+        const b = el('button', { type: 'button', class: 'sug-item', role: 'option' }, el('b', { text: x.v }), x.sub ? el('small', { text: x.sub }) : '');
+        b.addEventListener('pointerdown', (e) => e.preventDefault());       // que el campo no pierda el foco antes del toque
+        b.addEventListener('click', () => { inp.value = x.v; cerrar(); alElegir(x); });
+        return b;
+      }));
+      if (!items.length) caja.append(el('div', { class: 'sug-vacio', text: q ? 'No hay coincidencias: se guarda lo que escribiste.' : 'No hay datos cargados.' }));
+      caja.hidden = false; envol.classList.add('abierta');
+    }
+    function cerrar() { caja.hidden = true; todo = false; envol.classList.remove('abierta'); }
+    inp.addEventListener('focus', () => { todo = false; pintar(); });
+    inp.addEventListener('input', () => { todo = false; pintar(); });
+    inp.addEventListener('blur', () => setTimeout(cerrar, 150));
+    inp.addEventListener('keydown', (e) => { if (e.key === 'Escape') cerrar(); });
+    flecha.addEventListener('pointerdown', (e) => e.preventDefault());
+    flecha.addEventListener('click', () => { if (!caja.hidden && todo) return cerrar(); todo = true; inp.focus(); pintar(); });
+    return envol;
+  }
+  const detalleEmpresa = (e) => [e.cuit, [e.ubicacion, e.localidad].filter(Boolean).join(', ')].filter(Boolean).join(' · ');
+  function fuenteEmpresas() {
+    const vistos = new Set(), out = [];
+    S.empresas.forEach((e) => { if (e.nombre && !vistos.has(e.nombre)) { vistos.add(e.nombre); out.push({ v: e.nombre, sub: detalleEmpresa(e), dato: e }); } });
+    S.servicios.forEach((x) => { if (x.empresa && !vistos.has(x.empresa)) { vistos.add(x.empresa); out.push({ v: x.empresa, sub: 'De Seguimiento de Mediciones' }); } });
+    return out.sort((a, b) => a.v.localeCompare(b.v, 'es'));
+  }
+  const fuenteEquipos = () => S.equiposCal.map((e) => ({ v: [e.nombre, e.numero_serie && 'N/S ' + e.numero_serie].filter(Boolean).join(' · '),
+    sub: [e.que_mide, e.fecha_venc && 'Calibración vence ' + fechaCorta(e.fecha_venc)].filter(Boolean).join(' · ') }));
+  const fechaCorta = (iso) => { const m = /^(\d{4})-(\d\d)-(\d\d)/.exec(iso || ''); return m ? m[3] + '/' + m[2] + '/' + m[1] : iso; };
 
   /* =============================================================== lista de servicios */
   function pintarServicios() {
@@ -250,14 +301,25 @@
     const rot = $('cadRotulo'); rot.replaceChildren();
     Cadenas.rotulo(DEF).forEach((campo) => {
       const b = campoBloque(campo, C.rotulo[campo.id], (v) => { C.rotulo[campo.id] = v; cambio(); if (campo.id === 'equipo') avisoEquipo(); }, bloq, 'r');
-      if (campo.id === 'equipo') { b.querySelector('input').setAttribute('list', 'dlEquipos'); b.append(el('small', { id: 'avisoEquipo', class: 'aviso-eq' })); }
-      if (campo.id === 'empresa') {
-        const inp = b.querySelector('input'); inp.setAttribute('list', 'dlEmpresas');
-        // al elegir una empresa conocida se completan CUIT, ubicación, localidad, CP, provincia y sitio que estén vacíos
-        inp.addEventListener('change', () => {
-          const n = completarEmpresa(C.rotulo);
-          if (n) { cambio(); CAMPOS_EMP.forEach((k) => { const x = $('r_' + k); if (x && x.value !== (C.rotulo[k] || '')) x.value = C.rotulo[k] || ''; }); toast('Se completaron ' + n + ' datos de la empresa'); }
+      const refrescar = () => CAMPOS_EMP.forEach((k) => { const x = $('r_' + k); if (x && x.value !== (C.rotulo[k] || '')) x.value = C.rotulo[k] || ''; });
+      if (campo.id === 'equipo' && !bloq) {
+        const inp = b.querySelector('input');
+        sugerencias(inp, fuenteEquipos, (x) => { C.rotulo.equipo = x.v; cambio(); avisoEquipo(); });
+        b.append(el('small', { id: 'avisoEquipo', class: 'aviso-eq' }));
+      }
+      if (campo.id === 'empresa' && !bloq) {
+        const inp = b.querySelector('input');
+        // elegida de la lista: se ponen SUS datos (CUIT, ubicación, localidad, CP, provincia, sitio), aunque hubiera otros
+        sugerencias(inp, fuenteEmpresas, (x) => {
+          C.rotulo.empresa = x.v;
+          const e = x.dato || buscarEmpresa(x.v);
+          let n = 0;
+          if (e) CAMPOS_EMP.forEach((k) => { if (e[k] && C.rotulo[k] !== e[k]) { C.rotulo[k] = e[k]; n++; } });
+          cambio(); refrescar();
+          if (n) toast('Se cargaron ' + n + ' datos de ' + x.v);
         });
+        // escrita a mano: se completan solo los datos vacíos
+        inp.addEventListener('change', () => { const n = completarEmpresa(C.rotulo); if (n) { cambio(); refrescar(); toast('Se completaron ' + n + ' datos de la empresa'); } });
       }
       rot.append(b);
     });

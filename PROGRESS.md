@@ -24,3 +24,12 @@ Notas: el ingreso de Google y la autorización de permisos abren ventanas emerge
 - Botón «Salir» (como Seguimiento Ambiental): borra lo bajado del servidor y desactiva el ingreso automático; lo no subido queda.
 - Flecha en listas desplegables; fecha por defecto = día de creación; guardado al cerrar la pestaña (pagehide).
 - Chequeos: check-shell OK, probar-offline OK, 375 px claro, CSP, sin innerHTML con datos, backend valida iss/aud/email_verified/exp + lista blanca.
+
+## PENDIENTE (18/11/2026) — cadenas sueltas: elegir carpeta en 1. INFORMES
+- HECHO, SIN DESPLEGAR: gh-cadenas-backend/Code.gs tiene listarCarpetas_, crearCarpeta_ y guardarEnCarpeta_ (INFORMES_ID 1N0lloh4…; solo dentro de INFORMES, nunca pisa ni borra). Sintaxis OK, sin pruebas.
+- FALTA:
+  - prueba con mocks (carpetas con getParents encadenados);
+  - en app.js, entregar(): si C.servicio está vacío, abrir un selector con migas de pan, lista de subcarpetas, buscador, «Nueva carpeta» y «Guardar acá»;
+  - después llamar guardarEnCarpeta → pdfUrl → cerrarCadena con nombre = PDF final + « - datos.json»;
+  - sumar listarCarpetas a LECTURAS en backend.js;
+  - ./desplegar.sh, subir VERSION del SW, probar a 375 px claro/oscuro y publicar.
