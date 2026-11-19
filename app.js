@@ -68,7 +68,8 @@
     const igual = todas.find((e) => claveEmpresa(e.nombre) === k || (e.ambiental && claveEmpresa(e.ambiental) === k));
     if (igual) return igual;
     if (k.length < 3) return null;
-    const larga = todas.find((e) => claveEmpresa(e.nombre).indexOf(k + ' ') === 0);
+    // sin el sitio entre paréntesis el nombre tiene que ser más largo: «CINCA» no toma los datos de «CINCA (Veladero)»
+    const larga = todas.find((e) => claveEmpresa(String(e.nombre).replace(/\(.*?\)/g, ' ')).indexOf(k + ' ') === 0);
     if (larga) return larga;
     const general = todas.find((e) => { const x = claveEmpresa(e.nombre); return x.length >= 3 && k.indexOf(x + ' ') === 0; });
     return general && general.cuit ? { nombre: general.nombre, cuit: general.cuit, parcial: true } : null;

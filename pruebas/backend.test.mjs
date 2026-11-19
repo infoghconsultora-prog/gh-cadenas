@@ -118,4 +118,6 @@ const planta = emps.find((e) => e.nombre === 'CINCA S.A.'), vel = emps.find((e) 
 assert.equal(planta.ubicacion, 'Lateral de Ruta 40');
 assert.ok(vel, 'falta CINCA Veladero'); assert.equal(vel.localidad, 'Iglesia'); assert.equal(vel.ambiental, 'CINCA VELADERO');
 assert.equal(emps.filter((e) => /cinca/i.test(e.nombre)).length, 2);
+// solo Veladero en la base: «CINCA» de Ambiental NO se le une (es otra empresa, la planta)
+assert.ok(!emps.find((e) => /veladero/i.test(e.nombre) && e.ambiental === 'CINCA'));
 console.log('backend: todas las pruebas pasaron');
