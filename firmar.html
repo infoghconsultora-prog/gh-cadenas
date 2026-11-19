@@ -1,0 +1,68 @@
+<!doctype html>
+<!-- GH Cadenas — Copyright (c) 2026 Felipe Manrique. Todos los derechos reservados. -->
+<!-- Página pública para que el responsable de la empresa firme la cadena de custodia desde su celular, sin cuenta.
+     El código va después de «#» (no viaja en la dirección ni queda en los registros del servidor web). -->
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#f7f8f4" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#14170f" media="(prefers-color-scheme: dark)">
+<title>Firma de cadena de custodia · GH Consultora</title>
+<link rel="icon" href="icons/icon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body class="pag-firmar">
+<main class="firmar">
+  <header class="firmar-cab">
+    <img src="logo-gh.png" alt="GH Consultora" width="62" height="30">
+    <h1>Firma de cadena de custodia</h1>
+  </header>
+
+  <section class="card" id="fCargando"><p class="muted">Cargando la cadena…</p></section>
+
+  <section class="card" id="fError" hidden>
+    <h2>No se puede firmar con este enlace</h2>
+    <p id="fErrorMsg"></p>
+    <p class="muted">Pedile a GH Consultora que te envíe un enlace nuevo.</p>
+  </section>
+
+  <section class="card" id="fDatos" hidden>
+    <p class="muted">GH Consultora te pide la firma, como <strong id="fRol">cliente</strong>, de esta cadena de custodia:</p>
+    <dl class="firmar-datos">
+      <dt>Empresa</dt><dd id="fEmpresa"></dd>
+      <dt>Medición</dt><dd id="fTipo"></dd>
+      <dt>Fecha</dt><dd id="fFecha"></dd>
+      <dt>Puntos registrados</dt><dd id="fFilas"></dd>
+    </dl>
+    <div class="barra"><button class="btn sec" type="button" id="fVerPdf">Ver la cadena completa (PDF)</button></div>
+    <p class="muted" id="fVence"></p>
+  </section>
+
+  <section class="card" id="fFirma" hidden>
+    <h2>Tu firma</h2>
+    <div id="fPrevia" class="firma-slot"><div class="firma-vacia">Todavía no firmaste.</div></div>
+    <div class="barra"><button class="btn" type="button" id="fFirmar">Firmar con el dedo</button><span class="grow"></span>
+      <button class="btn grande" type="button" id="fEnviar" disabled>Enviar firma</button></div>
+    <p class="muted">Al enviar, tu firma queda en la cadena de custodia de GH Consultora. Se usa solo para este documento.</p>
+  </section>
+
+  <section class="card" id="fListo" hidden>
+    <h2>¡Listo, gracias!</h2>
+    <p>Tu firma ya quedó en la cadena de custodia. Podés cerrar esta página.</p>
+  </section>
+</main>
+<div class="toast" id="toast" role="status"><span id="toastMsg"></span><button id="toastBtn" hidden></button></div>
+<script src="vendor/pdf-lib.min.js"></script>
+<script src="cadenas.js"></script>
+<script src="firma.js"></script>
+<script src="pdf.js"></script>
+<script src="plantillas-cc.js"></script>
+<script src="pdf-original.js"></script>
+<script src="firmar.js"></script>
+</body>
+</html>

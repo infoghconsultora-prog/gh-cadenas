@@ -33,3 +33,8 @@ Notas: el ingreso de Google y la autorización de permisos abren ventanas emerge
   - después llamar guardarEnCarpeta → pdfUrl → cerrarCadena con nombre = PDF final + « - datos.json»;
   - sumar listarCarpetas a LECTURAS en backend.js;
   - ./desplegar.sh, subir VERSION del SW, probar a 375 px claro/oscuro y publicar.
+
+## 19/11/2026 — v1.7.0: firma a distancia
+- «Mandar a firmar» en la firma del cliente: enlace firmar.html#c=<código 96 hex> para WhatsApp/mail (menú compartir del teléfono o WhatsApp/mail/copiar).
+- Backend: crearPedidoFirma/anularPedidoFirma (con login) y verPedidoFirma/firmarPedido (públicas, solo con el código). Se guarda la huella SHA-256, vence a los 7 días, una sola vez, límite de intentos. La firma queda con remota:true y no se pierde si el teléfono guarda una versión sin ella (firmada_remota_<id>).
+- La app revisa sola en cada sincronización si ya firmó («¿Ya firmó?» para mirar a mano).

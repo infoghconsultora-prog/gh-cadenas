@@ -1,3 +1,4 @@
+import cripto from 'node:crypto';
 // Ejecuta Code.gs del backend con los servicios de Apps Script simulados (va acá y no en la carpeta del backend
 // porque clasp sube todo lo que haya ahí).   node pruebas/backend.test.mjs
 import fs from 'node:fs'; import path from 'node:path'; import vm from 'node:vm'; import assert from 'node:assert/strict';
@@ -29,15 +30,16 @@ function hoja(nombre) {
 function libro(nombre) { const id = nuevoId('S'); const l = { id, hojas: [hoja('Hoja 1')], getId: () => id, getSheets: () => l.hojas,
   getSheetByName: (n) => l.hojas.find((h) => h.nombre === n) || null, insertSheet: (n) => { const h = hoja(n); l.hojas.push(h); return h; } }; hojas[id] = l; return l; }
 const ctx = { console, JSON, Date, Math, String, Number, Object, Array, RegExp, Error,
-  PropertiesService: { getScriptProperties: () => ({ getProperty: (k) => props[k] ?? null, setProperty: (k, v) => { props[k] = String(v); } }) },
+  PropertiesService: { getScriptProperties: () => ({ getProperty: (k) => props[k] ?? null, setProperty: (k, v) => { props[k] = String(v); },
+    getProperties: () => Object.assign({}, props), deleteProperty: (k) => { delete props[k]; } }) },
   CacheService: { getScriptCache: () => ({ get: (k) => cache[k] ?? null, put: (k, v) => { cache[k] = v; }, remove: (k) => { delete cache[k]; } }) },
   LockService: { getScriptLock: () => ({ tryLock: () => true, releaseLock() {} }) },
   SpreadsheetApp: { create: libro, openById: (id) => hojas[id] },
   DriveApp: { createFolder: carpeta, getFolderById: (id) => carpetas[id], getFileById: (id) => { if (!archivos[id]) throw new Error('no existe ' + id); return archivos[id]; } },
   UrlFetchApp: { fetch: (u) => ({ getResponseCode: () => (/id_token=bueno/.test(u) ? 200 : 400),
     getContentText: () => JSON.stringify({ aud: ctx.OAUTH_CLIENT_ID, iss: 'accounts.google.com', email: /otro/.test(u) ? 'intruso@gmail.com' : 'FM.ghconsultora@gmail.com', email_verified: 'true', exp: String(Math.floor(Date.now() / 1000) + 3600) }) }) },
-  Utilities: { sleep() {}, getUuid: () => 'uuid', base64EncodeWebSafe: (b) => Buffer.from(b).toString('base64url'), base64DecodeWebSafe: (s) => Buffer.from(s, 'base64url'),
-    computeDigest: (_a, t) => Array.from(Buffer.from(String(t)).subarray(0, 24)), DigestAlgorithm: { SHA_256: 1 }, newBlob: (b) => ({ getDataAsString: () => Buffer.from(b).toString() }) },
+  Utilities: { sleep() {}, getUuid: () => cripto.randomUUID(), Charset: { UTF_8: 'utf8' }, base64EncodeWebSafe: (b) => Buffer.from(b).toString('base64url'), base64DecodeWebSafe: (s) => Buffer.from(s, 'base64url'),
+    computeDigest: (_a, t) => Array.from(cripto.createHash('sha256').update(String(t)).digest()).map((b) => (b > 127 ? b - 256 : b)), DigestAlgorithm: { SHA_256: 1 }, newBlob: (b) => ({ getDataAsString: () => Buffer.from(b).toString() }) },
   ContentService: { createTextOutput: (t) => ({ texto: t, setMimeType() { return this; } }), MimeType: { JSON: 'json' } },
 };
 vm.createContext(ctx); vm.runInContext(gs, ctx);
@@ -120,4 +122,37 @@ assert.ok(vel, 'falta CINCA Veladero'); assert.equal(vel.localidad, 'Iglesia'); 
 assert.equal(emps.filter((e) => /cinca/i.test(e.nombre)).length, 2);
 // solo Veladero en la base: «CINCA» de Ambiental NO se le une (es otra empresa, la planta)
 assert.ok(!emps.find((e) => /veladero/i.test(e.nombre) && e.ambiental === 'CINCA'));
+// ---- firma a distancia
+const sinCuenta = (cuerpo) => JSON.parse(ctx.doPost({ postData: { contents: JSON.stringify(cuerpo) } }).texto);   // sin idToken
+const cf = { id: 'cfirma0001', tipo: 'CC UVB', actualizado: Date.now(), rotulo: { empresa: 'Firma SA' }, por: 'tecnico@x.com', servicio: 's1',
+  firmas: { responsable: { png: 'data:image/png;base64,AAA=', nombre: 'Técnico' } } };
+assert.ok(post({ action: 'guardarCadena', cadena: cf }).ok);
+assert.equal(post({ action: 'crearPedidoFirma', id: 'cfirma0001', quien: 'recepcion' }).error, 'firma_no_remota');
+const ped = post({ action: 'crearPedidoFirma', id: 'cfirma0001', quien: 'cliente' });
+assert.ok(ped.ok && /^[0-9a-f]{96}$/.test(ped.codigo), 'código de 96 hex');
+assert.ok(!JSON.stringify(props).includes(ped.codigo), 'el código no se guarda, solo su huella');
+assert.equal(sinCuenta({ action: 'getData' }).error, 'auth_failed');                         // sin cuenta no hay nada más
+assert.equal(sinCuenta({ action: 'verPedidoFirma', codigo: 'f'.repeat(96) }).error, 'enlace_usado_o_anulado');
+assert.equal(sinCuenta({ action: 'verPedidoFirma', codigo: 'x' }).error, 'enlace_invalido');
+const vista = sinCuenta({ action: 'verPedidoFirma', codigo: ped.codigo });
+assert.ok(vista.ok && vista.cadena.rotulo.empresa === 'Firma SA' && !vista.cadena.por && !vista.cadena.servicio);
+assert.equal(sinCuenta({ action: 'firmarPedido', codigo: ped.codigo, nombre: 'Juan Pérez', png: 'javascript:alert(1)' }).error, 'firma_invalida');
+assert.equal(sinCuenta({ action: 'firmarPedido', codigo: ped.codigo, nombre: 'J', png: 'data:image/png;base64,QUJD' }).error, 'falta_aclaracion');
+const fir = sinCuenta({ action: 'firmarPedido', codigo: ped.codigo, nombre: 'Juan <b>Pérez</b>', png: 'data:image/png;base64,QUJD' });
+assert.ok(fir.ok);
+let cs = post({ action: 'getCadena', id: 'cfirma0001' }).cadena;
+assert.equal(cs.firmas.cliente.nombre, 'Juan bPérez/b'); assert.ok(cs.firmas.cliente.remota); assert.ok(cs.firmas.responsable);
+assert.equal(sinCuenta({ action: 'firmarPedido', codigo: ped.codigo, nombre: 'Otro', png: 'data:image/png;base64,QUJD' }).error, 'enlace_usado_o_anulado');   // una sola vez
+// el teléfono guarda una versión sin la firma del cliente (no se había enterado): la firma remota se conserva
+assert.ok(post({ action: 'guardarCadena', cadena: Object.assign({}, cf, { actualizado: Date.now() + 5000, firmas: { responsable: cf.firmas.responsable } }) }).ok);
+cs = post({ action: 'getCadena', id: 'cfirma0001' }).cadena;
+assert.ok(cs.firmas.cliente && cs.firmas.cliente.remota, 'la firma a distancia no se pierde');
+// anular: el enlace deja de servir
+const ped2 = post({ action: 'crearPedidoFirma', id: 'cfirma0001', quien: 'cliente' });
+assert.ok(post({ action: 'anularPedidoFirma', id: 'cfirma0001', quien: 'cliente' }).ok);
+assert.equal(sinCuenta({ action: 'verPedidoFirma', codigo: ped2.codigo }).error, 'enlace_usado_o_anulado');
+// vencido
+const ped3 = post({ action: 'crearPedidoFirma', id: 'cfirma0001', quien: 'cliente' });
+const kp = Object.keys(props).find((k) => k.startsWith('fr_')); const pp = JSON.parse(props[kp]); pp.vence = Date.now() - 1; props[kp] = JSON.stringify(pp);
+assert.equal(sinCuenta({ action: 'verPedidoFirma', codigo: ped3.codigo }).error, 'enlace_vencido');
 console.log('backend: todas las pruebas pasaron');

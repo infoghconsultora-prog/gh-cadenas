@@ -392,14 +392,77 @@
       const caja = el('div', { class: 'firma-slot' + (f ? ' hecha' : '') },
         el('div', { class: 'firma-et', text: et }),
         f ? el('img', { src: f.png, alt: 'Firma de ' + (f.nombre || et) }) : el('div', { class: 'firma-vacia', text: 'Sin firmar' }),
-        f ? el('div', { class: 'firma-nom', text: [f.nombre, f.cuando && new Date(f.cuando).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })].filter(Boolean).join(' · ') }) : null);
+        f ? el('div', { class: 'firma-nom', text: [f.nombre, f.cuando && new Date(f.cuando).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })].filter(Boolean).join(' · ') }) : null,
+        f && f.remota ? el('div', { class: 'firma-remota', text: 'Firmada a distancia' }) : null);
+      const ped = !f && (C.pedidosFirma || {})[k];
+      if (ped && !bloq) caja.append(el('div', { class: 'firma-espera' },
+        el('div', { text: 'Enviada para firmar desde el celular. Vence el ' + new Date(ped.vence).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' }) + '.' }),
+        el('div', { class: 'barra' },
+          el('button', { type: 'button', class: 'mini', onclick: () => compartirEnlace(ped.url) }, 'Reenviar'),
+          el('button', { type: 'button', class: 'mini', onclick: () => revisarFirmaRemota(true) }, '¿Ya firmó?'),
+          el('button', { type: 'button', class: 'mini peligro', onclick: () => anularFirmaRemota(k) }, 'Anular enlace'))));
       if (!bloq) caja.append(el('div', { class: 'barra' },
         el('button', { type: 'button', class: 'btn' + (f ? ' sec' : ''), onclick: async () => {
           const r = await Firma.pedir('Firma · ' + et, f ? f.nombre : (k === 'responsable' ? (S.usuario.nombre || '') : ''));
           if (!r) return; C.firmas = C.firmas || {}; C.firmas[k] = r; cambio(); pintarFirmas(); } }, f ? 'Volver a firmar' : 'Firmar'),
+        k === 'cliente' && !f && !(C.pedidosFirma || {})[k] ? el('button', { type: 'button', class: 'btn sec', onclick: () => pedirFirmaRemota(k) }, 'Mandar a firmar') : null,
         f ? el('button', { type: 'button', class: 'mini peligro', onclick: () => { if (confirm('¿Borrar esta firma?')) { delete C.firmas[k]; cambio(); pintarFirmas(); } } }, 'Borrar') : null));
       cont.append(caja);
     });
+  }
+
+  /* ---------- firma a distancia: enlace por WhatsApp o mail para que el cliente firme desde su celular ---------- */
+  async function pedirFirmaRemota(k) {
+    if (S.demo) return toast('En el modo de prueba no hay servidor: la firma a distancia se usa con sesión iniciada.');
+    if (!navigator.onLine) return toast('Hace falta señal para generar el enlace.');
+    toast('Generando el enlace…');
+    try {
+      if (tLocal) await guardarLocal();
+      const g = await Backend.llamar('guardarCadena', { cadena: Object.assign({}, C, { pendiente: undefined }) });   // el servidor tiene que tener la última versión
+      if (!g.ok) throw new Error(g.error);
+      const r = await Backend.llamar('crearPedidoFirma', { id: C.id, quien: k });
+      if (!r.ok) throw new Error(r.error);
+      const url = location.origin + location.pathname.replace(/[^/]*$/, '') + 'firmar.html#c=' + r.codigo;
+      C.pedidosFirma = Object.assign({}, C.pedidosFirma, { [k]: { url, vence: r.vence, creado: Date.now() } });
+      cambio(); pintarFirmas();
+      await compartirEnlace(url);
+    } catch (e) { toast('No se pudo generar el enlace: ' + (e.message || e)); }
+  }
+  function textoPedido(url) {
+    const r = C.rotulo || {}, f = /^(\d{4})-(\d\d)-(\d\d)/.exec(r.fecha || '');
+    return 'Hola, te comparto la cadena de custodia de ' + DEF.titulo.toLowerCase() + (r.empresa ? ' de ' + r.empresa : '') +
+      (f ? ' (' + f[3] + '/' + f[2] + '/' + f[1] + ')' : '') + ' para que la firmes desde el celular. Es solo para vos y sirve una vez: ' + url + '\n\nGH Consultora';
+  }
+  async function compartirEnlace(url) {
+    const texto = textoPedido(url);
+    if (navigator.share) { try { await navigator.share({ title: 'Firma de cadena de custodia', text: texto }); return; } catch (e) { if (e && e.name === 'AbortError') return; } }
+    // sin el menú de compartir del teléfono: WhatsApp, mail o copiar
+    const d = el('div', { class: 'firma-hoja' }, el('div', { class: 'firma-caja' },
+      el('h2', { text: 'Enviar para firmar' }), el('p', { class: 'muted', text: 'Mandale el enlace al responsable de la empresa. Lo abre en su celular y firma con el dedo; la firma aparece sola acá.' }),
+      el('a', { class: 'btn', href: 'https://wa.me/?text=' + encodeURIComponent(texto), target: '_blank', rel: 'noopener' }, 'Enviar por WhatsApp'),
+      el('a', { class: 'btn sec', href: 'mailto:?subject=' + encodeURIComponent('Firma de cadena de custodia') + '&body=' + encodeURIComponent(texto) }, 'Enviar por mail'),
+      el('button', { type: 'button', class: 'btn sec', onclick: async () => { try { await navigator.clipboard.writeText(url); toast('Enlace copiado'); } catch (e) { prompt('Copiá el enlace:', url); } } }, 'Copiar el enlace'),
+      el('button', { type: 'button', class: 'btn sec', onclick: () => d.remove() }, 'Cerrar')));
+    document.body.append(d);
+  }
+  async function anularFirmaRemota(k) {
+    if (!confirm('¿Anular el enlace? Si el cliente lo abre, ya no va a poder firmar.')) return;
+    try { const r = await Backend.llamar('anularPedidoFirma', { id: C.id, quien: k }); if (!r.ok) throw new Error(r.error); } catch (e) { return toast('No se pudo anular: ' + (e.message || e)); }
+    delete C.pedidosFirma[k]; cambio(); pintarFirmas(); toast('Enlace anulado');
+  }
+  /* ¿Firmó? Se mira en el servidor cuando hay un pedido abierto (lo llama también la sincronización). */
+  async function revisarFirmaRemota(avisarSiNo) {
+    if (!C || !C.pedidosFirma || !Object.keys(C.pedidosFirma).length || S.demo || !navigator.onLine) return;
+    try {
+      const r = await Backend.llamar('getCadena', { id: C.id });
+      if (!r.ok || !r.cadena) return;
+      let nuevas = 0;
+      Object.keys(C.pedidosFirma).forEach((k) => {
+        const f = ((r.cadena.firmas || {})[k]);
+        if (f && f.remota) { C.firmas = C.firmas || {}; C.firmas[k] = f; delete C.pedidosFirma[k]; nuevas++; toast('Firmó ' + (f.nombre || 'el cliente') + ' desde su celular'); }
+      });
+      if (nuevas) { cambio(); pintarFirmas(); } else if (avisarSiNo) toast('Todavía no firmó.');
+    } catch (e) { if (avisarSiNo) toast('No se pudo consultar: revisá la señal.'); }
   }
 
   /* ---------- guardado: primero en el teléfono, después al servidor ---------- */
@@ -564,6 +627,7 @@
           const r = await Backend.llamar('getCadena', { id });
           if (r.ok && r.cadena) { r.cadena.pendiente = false; S.cadenas.set(id, r.cadena); await Almacen.poner(r.cadena); }
         }
+        revisarFirmaRemota(false);
         // lo que otro borró en el servidor y acá no tiene cambios sin subir, se quita
         const vivos = new Set((d.cadenas || []).map((x) => x.id));
         for (const c of Array.from(S.cadenas.values())) if (!vivos.has(c.id) && !c.pendiente && !(C && C.id === c.id)) { S.cadenas.delete(c.id); await Almacen.quitar(c.id); }
