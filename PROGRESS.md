@@ -38,3 +38,9 @@ Notas: el ingreso de Google y la autorización de permisos abren ventanas emerge
 - «Mandar a firmar» en la firma del cliente: enlace firmar.html#c=<código 96 hex> para WhatsApp/mail (menú compartir del teléfono o WhatsApp/mail/copiar).
 - Backend: crearPedidoFirma/anularPedidoFirma (con login) y verPedidoFirma/firmarPedido (públicas, solo con el código). Se guarda la huella SHA-256, vence a los 7 días, una sola vez, límite de intentos. La firma queda con remota:true y no se pierde si el teléfono guarda una versión sin ella (firmada_remota_<id>).
 - La app revisa sola en cada sincronización si ya firmó («¿Ya firmó?» para mirar a mano).
+
+## v1.8.0 (20/11/2026) — empresas
+- `empresas.js`: base tomada de los informes reales de 1. INFORMES (19 empresas, todas con datos; CINCA S.A. planta Rawson y CINCA S.A. (Veladero) aparte) con `alias` para los nombres cortos de Seguimiento («Salentein», «SCOP», «Milicic», «LIEBHERR»…). La misma lista está en Code.gs (SEMILLA_EMP, deploy @7) y en GH Informes (datos/empresas_semilla.json).
+- Los datos de los informes mandan sobre lo aprendido; lo de Ambiental sin ningún dato ya no entra a la lista; los nombres de Seguimiento que son una empresa de la base no se repiten en blanco.
+- Elegir o escribir «Salentein» deja la razón social completa y carga CUIT, dirección, localidad, CP y provincia.
+- Regenerar la base: `python3 ~/Developer/gh-informes/herramientas/extraer_empresas.py salida.json` (lee los Word del Drive, tarda ~10 min la primera vez) y curar a mano empresas.js.
