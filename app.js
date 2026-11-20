@@ -63,22 +63,46 @@
   function buscarEmpresa(nombre) {
     const k = claveEmpresa(nombre);
     if (!k) return null;
-    const local = (recordar.get('empresas') || {});
-    const todas = S.empresas.concat(Object.entries(local).map(([n, e]) => Object.assign({ nombre: n }, e)));
-    const igual = todas.find((e) => claveEmpresa(e.nombre) === k || (e.ambiental && claveEmpresa(e.ambiental) === k));
+    const todas = baseEmpresas();
+    const alias = (e) => [e.ambiental].concat(e.alias || []).filter(Boolean).map(claveEmpresa);
+    const igual = todas.find((e) => claveEmpresa(e.nombre) === k) || todas.find((e) => alias(e).includes(k));
     if (igual) return igual;
     if (k.length < 3) return null;
+    // «Salentein» → «BODEGAS SALENTEIN»: el nombre escrito está entero, como palabras, dentro de uno solo de la base
+    // (sin el sitio: «CINCA» no es «CINCA (Veladero)»)
+    const sinSitio = (e) => ' ' + claveEmpresa(String(e.nombre).replace(/\(.*?\)/g, ' ')) + ' ';
+    const dentro = todas.filter((e) => !/\(/.test(e.nombre) && sinSitio(e).includes(' ' + k + ' '));
+    if (dentro.length === 1) return dentro[0];
     // sin el sitio entre paréntesis el nombre tiene que ser más largo: «CINCA» no toma los datos de «CINCA (Veladero)»
     const larga = todas.find((e) => claveEmpresa(String(e.nombre).replace(/\(.*?\)/g, ' ')).indexOf(k + ' ') === 0);
     if (larga) return larga;
     const general = todas.find((e) => { const x = claveEmpresa(e.nombre); return x.length >= 3 && k.indexOf(x + ' ') === 0; });
     return general && general.cuit ? { nombre: general.nombre, cuit: general.cuit, parcial: true } : null;
   }
-  /* Completa los datos vacíos del rótulo con los de la base. Devuelve cuántos completó. */
+  /* Base: la del servidor + la de los informes (empresas.js) + lo que se aprendió en este teléfono. Una por nombre;
+     lo del servidor manda, un dato vacío nunca tapa uno lleno. */
+  function baseEmpresas() {
+    const por = new Map();
+    const sumar = (e) => {
+      const k = claveEmpresa(e.nombre); if (!k) return;
+      const a = por.get(k);
+      if (!a) { por.set(k, Object.assign({}, e)); return; }
+      CAMPOS_EMP.forEach((c) => { if (!a[c] && e[c]) a[c] = e[c]; });
+      a.alias = Array.from(new Set((a.alias || []).concat(e.alias || [])));
+      if (!a.ambiental && e.ambiental) a.ambiental = e.ambiental;
+    };
+    S.empresas.forEach(sumar);
+    (window.EMPRESAS_BASE || []).forEach(sumar);
+    Object.entries(recordar.get('empresas') || {}).forEach(([n, e]) => sumar(Object.assign({ nombre: n }, e)));
+    return Array.from(por.values()).filter((e) => CAMPOS_EMP.some((c) => e[c]));
+  }
+  /* Completa los datos vacíos del rótulo con los de la base. Si el nombre era el corto de Seguimiento («Salentein»),
+     queda la razón social completa. Devuelve cuántos completó. */
   function completarEmpresa(rot) {
     const e = buscarEmpresa(rot.empresa);
     if (!e) return 0;
     let n = 0;
+    if (!e.parcial && e.nombre && rot.empresa !== e.nombre) { rot.empresa = e.nombre; n++; }
     CAMPOS_EMP.forEach((k) => { if (e[k] && !String(rot[k] || '').trim()) { rot[k] = e[k]; n++; } });
     return n;
   }
@@ -95,7 +119,7 @@
     let todo = false;
     function pintar() {
       const q = Cadenas.norm(inp.value).trim();
-      const items = fuente().filter((x) => todo || !q || Cadenas.norm(x.v + ' ' + (x.sub || '')).includes(q)).slice(0, todo ? 80 : 12);
+      const items = fuente().filter((x) => todo || !q || Cadenas.norm(x.v + ' ' + (x.sub || '') + ' ' + (x.busca || '')).includes(q)).slice(0, todo ? 80 : 12);
       caja.replaceChildren(...items.map((x) => {
         const b = el('button', { type: 'button', class: 'sug-item', role: 'option' }, el('b', { text: x.v }), x.sub ? el('small', { text: x.sub }) : '');
         b.addEventListener('pointerdown', (e) => e.preventDefault());       // que el campo no pierda el foco antes del toque
@@ -116,10 +140,17 @@
   }
   const detalleEmpresa = (e) => [e.cuit, [e.ubicacion, e.localidad].filter(Boolean).join(', ')].filter(Boolean).join(' · ');
   function fuenteEmpresas() {
-    const vistos = new Set(), out = [];
-    S.empresas.forEach((e) => { if (e.nombre && !vistos.has(e.nombre)) { vistos.add(e.nombre); out.push({ v: e.nombre, sub: detalleEmpresa(e), dato: e }); } });
-    S.servicios.forEach((x) => { if (x.empresa && !vistos.has(x.empresa)) { vistos.add(x.empresa); out.push({ v: x.empresa, sub: 'De Seguimiento de Mediciones' }); } });
-    return out.sort((a, b) => a.v.localeCompare(b.v, 'es'));
+    // solo empresas con sus datos; un nombre de Seguimiento que ya es una de la base («Salentein») no se repite
+    const out = baseEmpresas().map((e) => ({ v: e.nombre, sub: detalleEmpresa(e), dato: e, busca: (e.alias || []).join(' ') }));
+    const ya = new Set(out.map((x) => claveEmpresa(x.v)));
+    S.servicios.forEach((x) => {
+      if (!x.empresa) return;
+      const e = buscarEmpresa(x.empresa);
+      if (e && !e.parcial) return;
+      const k = claveEmpresa(x.empresa);
+      if (!ya.has(k)) { ya.add(k); out.push({ v: x.empresa, sub: 'Sin datos en la base: completalos a mano', sinDatos: true }); }
+    });
+    return out.sort((a, b) => (a.sinDatos - b.sinDatos) || a.v.localeCompare(b.v, 'es'));
   }
   const fuenteEquipos = () => S.equiposCal.map((e) => ({ v: [e.nombre, e.numero_serie && 'N/S ' + e.numero_serie].filter(Boolean).join(' · '),
     sub: [e.que_mide, e.fecha_venc && 'Calibración vence ' + fechaCorta(e.fecha_venc)].filter(Boolean).join(' · ') }));
@@ -320,7 +351,7 @@
           if (n) toast('Se cargaron ' + n + ' datos de ' + x.v);
         });
         // escrita a mano: se completan solo los datos vacíos
-        inp.addEventListener('change', () => { const n = completarEmpresa(C.rotulo); if (n) { cambio(); refrescar(); toast('Se completaron ' + n + ' datos de la empresa'); } });
+        inp.addEventListener('change', () => { const n = completarEmpresa(C.rotulo); if (n) { inp.value = C.rotulo.empresa || ''; cambio(); refrescar(); toast('Se completaron los datos de ' + C.rotulo.empresa); } });
       }
       rot.append(b);
     });

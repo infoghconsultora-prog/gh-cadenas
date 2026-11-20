@@ -117,7 +117,11 @@ amb.hojas[0].appendRow(filaAmb('CINCA', '33-71229872-9')); amb.hojas[0].appendRo
 post({ action: 'importarEmpresas', empresas: [{ nombre: 'CINCA S.A.', ubicacion: 'Lateral de Ruta 40', localidad: 'Rawson' }] });
 emps = post({ action: 'getData' }).empresas;
 const planta = emps.find((e) => e.nombre === 'CINCA S.A.'), vel = emps.find((e) => /veladero/i.test(e.nombre));
-assert.equal(planta.ubicacion, 'Lateral de Ruta 40');
+assert.equal(planta.ubicacion, 'Gral. Mosconi S/N entre Calle 5 y Progreso');   // los datos de los informes reales mandan
+assert.equal(planta.cp, '5425'); assert.equal(vel.cp, '5465');
+// «Salentein» de Ambiental se une a BODEGAS SALENTEIN por el alias (no queda una entrada en blanco)
+amb.hojas[0].appendRow(filaAmb('Salentein', '')); emps = post({ action: 'getData' }).empresas;
+
 assert.ok(vel, 'falta CINCA Veladero'); assert.equal(vel.localidad, 'Iglesia'); assert.equal(vel.ambiental, 'CINCA VELADERO');
 assert.equal(emps.filter((e) => /cinca/i.test(e.nombre)).length, 2);
 // solo Veladero en la base: «CINCA» de Ambiental NO se le une (es otra empresa, la planta)
