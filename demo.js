@@ -3,9 +3,10 @@ window.DEMO_DATOS = {
   usuario: { email: 'tecnico@ejemplo.com', nombre: 'Felipe Manrique' },
   equipo: [{ email: 'tecnico@ejemplo.com', nombre: 'Felipe Manrique' }, { email: 'tecnico2@ejemplo.com', nombre: 'Elvio Palumbo' }],
   equiposCal: [
-    { nombre: 'Decibelímetro Criffer Octava', numero_serie: '18042821', que_mide: 'Nivel de presión sonora', fecha_venc: '2027-07-03' },
+    { equipo: 'Luxómetro', marca: 'TES', modelo: '1330A', serie: '220301', que_mide: 'Nivel de iluminancia (lux)', fecha_venc: '2027-05-20' },
+    { equipo: 'Decibelímetro', marca: 'Criffer', modelo: 'Octava', serie: '18042821', que_mide: 'Nivel de presión sonora', fecha_venc: '2027-07-03' },
     { nombre: 'Monitor de estrés térmico QUESTemp 34', numero_serie: 'TKG050012', que_mide: 'Carga térmica (TGBH)', fecha_venc: '2027-02-10' },
-    { nombre: 'Luxómetro CEM DT-8809A', numero_serie: '190614725', que_mide: 'Nivel de iluminancia (lux)', fecha_venc: '2026-08-01' },
+    { equipo: 'Luxómetro', marca: 'CEM', modelo: 'DT-8809A', serie: '190614725', que_mide: 'Nivel de iluminancia (lux)', fecha_venc: '2026-08-01' },
     { nombre: 'Radiómetro UV340B', numero_serie: 'UV-2231', que_mide: 'Radiación ultravioleta', fecha_venc: '2027-03-15' }],
   servicios: [
     { empresa: 'METALÚRGICA DEL OESTE S.A. (ejemplo)', presupuestoGH: '0911-00501', ordenCompra: '', fechaMuestreo: null,

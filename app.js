@@ -152,7 +152,16 @@
     });
     return out.sort((a, b) => (a.sinDatos - b.sinDatos) || a.v.localeCompare(b.v, 'es'));
   }
-  const fuenteEquipos = () => S.equiposCal.map((e) => ({ v: [e.nombre, e.numero_serie && 'N/S ' + e.numero_serie].filter(Boolean).join(' · '),
+  /* Equipos de la planilla de Calibraciones (columnas equipo, marca, modelo, serie, que_mide, fecha_venc).
+     Se muestra «Equipo · Marca Modelo · N/S …» para distinguir equipos que miden lo mismo. */
+  const nombreEq = (e) => String(e.equipo || e.nombre || '').trim();
+  const serieEq = (e) => String(e.serie || e.numero_serie || '').trim();
+  function textoEquipo(e) {
+    const n = nombreEq(e), mm = [e.marca, e.modelo].map((x) => String(x || '').trim()).filter(Boolean).join(' ');
+    const yaDice = mm && Cadenas.norm(n).includes(Cadenas.norm(mm));
+    return [n, yaDice ? '' : mm, serieEq(e) && 'N/S ' + serieEq(e)].filter(Boolean).join(' · ');
+  }
+  const fuenteEquipos = () => S.equiposCal.map((e) => ({ v: textoEquipo(e),
     sub: [e.que_mide, e.fecha_venc && 'Calibración vence ' + fechaCorta(e.fecha_venc)].filter(Boolean).join(' · ') }));
   const fechaCorta = (iso) => { const m = /^(\d{4})-(\d\d)-(\d\d)/.exec(iso || ''); return m ? m[3] + '/' + m[2] + '/' + m[1] : iso; };
 
@@ -408,7 +417,8 @@
     const a = $('avisoEquipo'); if (!a) return;
     const v = Cadenas.norm((C.rotulo || {}).equipo); a.textContent = ''; a.className = 'aviso-eq';
     if (!v) return;
-    const eq = S.equiposCal.find((e) => (e.nombre && v.includes(Cadenas.norm(e.nombre))) || (e.numero_serie && v.includes(Cadenas.norm(e.numero_serie))));
+    const eq = S.equiposCal.find((e) => (serieEq(e) && v.includes(Cadenas.norm(serieEq(e)))) || v === Cadenas.norm(textoEquipo(e)))
+      || S.equiposCal.find((e) => nombreEq(e) && v.includes(Cadenas.norm(nombreEq(e))));
     if (!eq || !eq.fecha_venc) return;
     const vencido = String(eq.fecha_venc) < hoy();
     a.textContent = (vencido ? 'Calibración VENCIDA el ' : 'Calibración vigente hasta el ') + fechaEs(String(eq.fecha_venc));
@@ -665,7 +675,7 @@
       } catch (e) { /* sin conexión: se sigue con lo local */ }
     }
     const dl = $('dlEquipos'); dl.replaceChildren();
-    S.equiposCal.forEach((e) => dl.append(el('option', { value: [e.nombre, e.numero_serie && 'N/S ' + e.numero_serie].filter(Boolean).join(' · ') })));
+    S.equiposCal.forEach((e) => dl.append(el('option', { value: textoEquipo(e) })));
     $('bannerDemo').hidden = !S.demo;
     $('usuario').textContent = S.usuario.nombre || S.usuario.email || '';
     const primera = !S.iniciada; S.iniciada = true;
